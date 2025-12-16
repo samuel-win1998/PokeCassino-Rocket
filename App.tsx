@@ -380,7 +380,7 @@ const App: React.FC = () => {
                   ?
               </button>
               <div className="font-display font-bold text-xl tracking-tighter text-transparent bg-clip-text bg-gradient-to-r from-violet-400 to-fuchsia-400">
-                POKÉCASINO
+                PokeCassino - Rocket
               </div>
           </div>
           <div className="flex items-center gap-2 bg-slate-900/80 px-4 py-2 rounded-xl border border-slate-700 shadow-inner">

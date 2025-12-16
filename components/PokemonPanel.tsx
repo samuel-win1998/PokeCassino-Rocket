@@ -16,7 +16,7 @@ export const SquadPanel: React.FC<SquadPanelProps> = ({ squad, allInventory, cre
   return (
     <div className="mb-8">
       <h2 className="text-2xl font-display font-bold text-white mb-4 flex items-center gap-2">
-        Active Squad <span className="text-sm bg-slate-700 px-2 py-1 rounded text-slate-300 font-mono">{squad.length}/6</span>
+        Party <span className="text-sm bg-slate-700 px-2 py-1 rounded text-slate-300 font-mono">{squad.length}/6</span>
       </h2>
       
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 gap-4">

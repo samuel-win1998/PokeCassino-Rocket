@@ -10,7 +10,7 @@ export const StarterSelection: React.FC<StarterSelectionProps> = ({ onSelect }) 
   return (
     <div className="min-h-[80vh] flex flex-col items-center justify-center p-4">
       <h1 className="text-4xl md:text-6xl font-display font-black text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 via-violet-400 to-fuchsia-400 mb-4 text-center">
-        POKÉ CASINO
+        PokéCassino - Rocket
       </h1>
       <p className="text-slate-400 text-lg mb-12 text-center max-w-md">
         Choose your partner to begin your journey. Each Pokémon grants a unique bonus to specific casino games.
