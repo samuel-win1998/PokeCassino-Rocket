@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { MarketPokemon, MarketFilter, PokemonClass, BonusType, PokemonType, PokemonGroup } from '../types';
 import { Button } from './ui/Button';
 import { CLASS_COLORS, TYPE_COLORS } from '../constants';
+import { calculateRefreshCost } from '../utils/marketGenerator';
 
 interface MarketplaceProps {
   credits: number;
@@ -23,7 +24,8 @@ export const Marketplace: React.FC<MarketplaceProps> = ({
 }) => {
   const [timeLeft, setTimeLeft] = useState(0);
 
-  const refreshCost = Math.floor(credits * 0.05);
+  // Dynamic Cost Calculation
+  const refreshCost = calculateRefreshCost(filter);
 
   useEffect(() => {
     const updateTimer = () => {
@@ -79,7 +81,9 @@ export const Marketplace: React.FC<MarketplaceProps> = ({
                     className="text-sm py-2 px-4 flex items-center justify-center gap-2"
                 >
                     Force Refresh 
-                    <span className="text-red-300 font-mono text-xs">(-${refreshCost.toLocaleString()})</span>
+                    <span className={`font-mono text-xs ${credits < refreshCost ? 'text-red-500' : 'text-red-300'}`}>
+                        (-${refreshCost.toLocaleString()})
+                    </span>
                 </Button>
             </div>
          </div>
@@ -110,19 +114,19 @@ export const Marketplace: React.FC<MarketplaceProps> = ({
                             onChange={(e) => setFilter({...filter, targetGroup: e.target.value as PokemonGroup})}
                          >
                              <option value="ALL">All Groups</option>
-                             <option value="starter">Starters</option>
-                             <option value="legendary">Legendaries</option>
-                             <option value="mythical">Mythicals</option>
-                             <option value="pseudo">Pseudo-Legendaries</option>
-                             <option value="ultrabeast">Ultra Beasts</option>
-                             <option value="paradox">Paradox Pokémon</option>
+                             <option value="starter">Starters (+1k)</option>
+                             <option value="pseudo">Pseudo-Legendaries (+5k)</option>
+                             <option value="paradox">Paradox Pokémon (+10k)</option>
+                             <option value="ultrabeast">Ultra Beasts (+15k)</option>
+                             <option value="mythical">Mythicals (+20k)</option>
+                             <option value="legendary">Legendaries (+25k)</option>
                          </select>
                     </div>
                 </div>
 
                 {/* Type Filter */}
                 <div>
-                     <label className="block text-xs text-slate-400 mb-1 uppercase font-bold">Types (Select Multiple)</label>
+                     <label className="block text-xs text-slate-400 mb-1 uppercase font-bold">Types (Select Multiple) <span className="text-red-400 ml-2">(+5,000 cost)</span></label>
                      <div className="flex flex-wrap gap-2">
                         {Object.keys(TYPE_COLORS).map(typeKey => {
                             const type = typeKey as PokemonType;
@@ -154,29 +158,41 @@ export const Marketplace: React.FC<MarketplaceProps> = ({
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 border-t border-white/5 pt-4">
                     <div>
-                        <label className="block text-xs text-slate-400 mb-1 uppercase font-bold">Class</label>
+                        <label className="block text-xs text-slate-400 mb-1 uppercase font-bold">Class Filter Cost</label>
                         <div className="flex flex-wrap gap-2">
-                            {(['ALL', 'F', 'E', 'D', 'C', 'B', 'A'] as const).map(c => (
-                                <button 
-                                    key={c}
-                                    onClick={() => setFilter(prev => ({ ...prev, targetClass: c as PokemonClass | 'ALL' }))}
-                                    className={`px-3 py-1 rounded-lg text-xs font-bold border transition-colors ${filter.targetClass === c ? 'bg-violet-600 border-violet-400 text-white' : 'bg-slate-800 border-slate-700 text-slate-400 hover:border-slate-500'}`}
-                                >
-                                    {c}
-                                </button>
-                            ))}
+                            {(['ALL', 'F', 'E', 'D', 'C', 'B', 'A'] as const).map(c => {
+                                let costLabel = '';
+                                if(c === 'F') costLabel = '-500';
+                                else if(c === 'E' || c === 'ALL') costLabel = '';
+                                else if(c === 'D') costLabel = '+1k';
+                                else if(c === 'C') costLabel = '+5k';
+                                else if(c === 'B') costLabel = '+10k';
+                                else if(c === 'A') costLabel = '+25k';
+                                
+                                return (
+                                    <button 
+                                        key={c}
+                                        onClick={() => setFilter(prev => ({ ...prev, targetClass: c as PokemonClass | 'ALL' }))}
+                                        className={`px-3 py-1 rounded-lg text-xs font-bold border transition-colors flex flex-col items-center ${filter.targetClass === c ? 'bg-violet-600 border-violet-400 text-white' : 'bg-slate-800 border-slate-700 text-slate-400 hover:border-slate-500'}`}
+                                    >
+                                        <span>{c}</span>
+                                        {costLabel && <span className={`text-[9px] ${c === 'F' ? 'text-green-400' : 'text-red-300'}`}>{costLabel}</span>}
+                                    </button>
+                                )
+                            })}
                         </div>
                     </div>
                     <div>
-                        <label className="block text-xs text-slate-400 mb-1 uppercase font-bold">Bonus</label>
+                        <label className="block text-xs text-slate-400 mb-1 uppercase font-bold">Bonus Filter Cost</label>
                         <div className="flex flex-wrap gap-2">
                             {(['ALL', 'roulette', 'rocket', 'slot'] as const).map(b => (
                                 <button 
                                     key={b}
                                     onClick={() => setFilter(prev => ({ ...prev, targetBonus: b as BonusType | 'ALL' }))}
-                                    className={`px-3 py-1 rounded-lg text-xs font-bold border transition-colors ${filter.targetBonus === b ? 'bg-emerald-600 border-emerald-400 text-white' : 'bg-slate-800 border-slate-700 text-slate-400 hover:border-slate-500'}`}
+                                    className={`px-3 py-1 rounded-lg text-xs font-bold border transition-colors flex flex-col items-center ${filter.targetBonus === b ? 'bg-emerald-600 border-emerald-400 text-white' : 'bg-slate-800 border-slate-700 text-slate-400 hover:border-slate-500'}`}
                                 >
-                                    {b === 'ALL' ? 'Any' : b.charAt(0).toUpperCase() + b.slice(1)}
+                                    <span>{b === 'ALL' ? 'Any' : b.charAt(0).toUpperCase() + b.slice(1)}</span>
+                                    {b !== 'ALL' && <span className="text-[9px] text-red-300">+5k</span>}
                                 </button>
                             ))}
                         </div>
@@ -188,7 +204,7 @@ export const Marketplace: React.FC<MarketplaceProps> = ({
 
        {loading ? (
          <div className="flex justify-center py-20">
-           <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-violet-500"></div>
+           <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-violet-500"></div>
          </div>
        ) : (
          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">

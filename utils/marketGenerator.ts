@@ -32,6 +32,48 @@ export const calculateMultiplier = (totalStats: number, pClass: PokemonClass): n
     return (basePercent * classMult) / 100; 
 };
 
+// --- Helper: Market Refresh Cost Calculation ---
+export const calculateRefreshCost = (filter: MarketFilter): number => {
+    let cost = 1000; // Base Cost
+
+    // Type Filter (+5000 if specific types selected)
+    if (filter.targetType && filter.targetType.length > 0) {
+        cost += 5000;
+    }
+
+    // Specific Bonus Game Filter (+5000)
+    if (filter.targetBonus !== 'ALL') {
+        cost += 5000;
+    }
+
+    // Group Filter Costs (Based on strength/rarity)
+    if (filter.targetGroup !== 'ALL') {
+        switch (filter.targetGroup) {
+            case 'starter': cost += 1000; break;
+            case 'pseudo': cost += 5000; break;
+            case 'paradox': cost += 10000; break;
+            case 'ultrabeast': cost += 15000; break;
+            case 'mythical': cost += 20000; break;
+            case 'legendary': cost += 25000; break;
+        }
+    }
+
+    // Class Filter Costs
+    if (filter.targetClass !== 'ALL') {
+        switch (filter.targetClass) {
+            case 'F': cost -= 500; break;
+            case 'E': break; // +0
+            case 'D': cost += 1000; break;
+            case 'C': cost += 5000; break;
+            case 'B': cost += 10000; break;
+            case 'A': cost += 25000; break;
+        }
+    }
+
+    // Ensure cost doesn't go below zero (though logical minimum is 500 with F class)
+    return Math.max(0, cost);
+};
+
 // --- Helper: Fetch Data ---
 export const fetchPokemonData = async (id: number): Promise<{ name: string, sprite: string, shinySprite: string, totalStats: number, types: PokemonType[], isLegendary: boolean, isMythical: boolean } | null> => {
   try {

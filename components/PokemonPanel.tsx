@@ -1,7 +1,8 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { MarketPokemon } from '../types';
 import { Button } from './ui/Button';
 import { CLASS_COLORS, MEGA_EVOLUTION_MAP, FUSION_PAIRS, FORM_CHAINS } from '../constants';
+import { getNextEvolution } from '../utils/marketGenerator';
 
 interface SquadPanelProps {
   squad: MarketPokemon[];
@@ -13,6 +14,30 @@ interface SquadPanelProps {
 }
 
 export const SquadPanel: React.FC<SquadPanelProps> = ({ squad, allInventory, credits, onEvolve, onFuse, onFormChange }) => {
+  const [canEvolveMap, setCanEvolveMap] = useState<Record<string, boolean>>({});
+
+  useEffect(() => {
+    // Check evolution status for squad members asynchronously
+    const checkEvolutions = async () => {
+        const newMap: Record<string, boolean> = {};
+        
+        for (const p of squad) {
+            // Optimization: if we already checked this ID, skip (unless it evolved, but ID changes or persists? UniqueId persists)
+            // But if it evolved, PokedexID changed, so checking again is fine.
+            
+            // If it's a mega or special form, regular evolution logic might fail or be irrelevant, handled below.
+            // But for standard "Evolve" button, we need to know if next exists.
+            if (!MEGA_EVOLUTION_MAP[p.pokedexId] && !FORM_CHAINS[p.pokedexId] && !FUSION_PAIRS[p.pokedexId]) {
+                const next = await getNextEvolution(p.pokedexId);
+                newMap[p.uniqueId] = !!next;
+            }
+        }
+        setCanEvolveMap(prev => ({...prev, ...newMap}));
+    };
+
+    checkEvolutions();
+  }, [squad]);
+
   return (
     <div className="mb-8">
       <h2 className="text-2xl font-display font-bold text-white mb-4 flex items-center gap-2">
@@ -22,12 +47,9 @@ export const SquadPanel: React.FC<SquadPanelProps> = ({ squad, allInventory, cre
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 gap-4">
         {squad.map((pokemon) => {
           // 1. Check Standard/Mega Evolution
-          // Default logic: Assume everyone can *try* to evolve for standard cost, unless they are known mega/form.
-          // The API check in App.tsx will reject if no evolution exists.
           let nextStageCost = 5000;
           let evoLabel = 'Evolve';
           let isMega = false;
-          let isFormChange = false;
 
           // Check for Mega
           if (MEGA_EVOLUTION_MAP[pokemon.pokedexId]) {
@@ -57,6 +79,10 @@ export const SquadPanel: React.FC<SquadPanelProps> = ({ squad, allInventory, cre
           // 3. Check Form Changes (Linear, One-Way)
           const nextFormId = FORM_CHAINS[pokemon.pokedexId];
           const formChangeCost = 25000;
+
+          // Determine if we show standard evolve button
+          // Show if: Is Mega OR (Not Mega/Form/Fusion AND API says can evolve)
+          const showEvolve = isMega || (!nextFormId && !availableFusion && canEvolveMap[pokemon.uniqueId]);
           
           return (
             <div key={pokemon.uniqueId} className={`glass-panel p-4 rounded-xl flex items-center gap-4 relative overflow-hidden border ${pokemon.isShiny ? 'border-yellow-400' : CLASS_COLORS[pokemon.class].split(' ')[1]}`}>
@@ -103,8 +129,7 @@ export const SquadPanel: React.FC<SquadPanelProps> = ({ squad, allInventory, cre
                           >
                              Change Form ${formChangeCost.toLocaleString()}
                           </Button>
-                      ) : (
-                          // Standard Evolution Button (Shown by default, logic handles failure)
+                      ) : showEvolve ? (
                           <Button 
                             variant={isMega ? 'primary' : 'success'} 
                             disabled={credits < nextStageCost}
@@ -113,6 +138,10 @@ export const SquadPanel: React.FC<SquadPanelProps> = ({ squad, allInventory, cre
                           >
                             {evoLabel} ${nextStageCost.toLocaleString()}
                           </Button>
+                      ) : (
+                          <div className="text-center">
+                            <span className="text-xs text-slate-500 font-mono border border-slate-800 px-2 py-1 rounded">MAX LEVEL</span>
+                          </div>
                       )}
                   </div>
                </div>

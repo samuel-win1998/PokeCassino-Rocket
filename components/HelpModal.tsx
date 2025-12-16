@@ -103,13 +103,58 @@ export const HelpModal: React.FC<HelpModalProps> = ({ isOpen, onClose }) => {
             </section>
 
             <section>
-              <h3 className="text-xl font-bold text-white mb-2">🛒 Market Rules</h3>
-              <ul className="list-disc pl-5 text-sm space-y-1">
-                <li>Cost depends on Stats, Class, and Group (Legendary/Starter).</li>
-                <li>Refreshing costs 5% of your balance.</li>
-                <li>You can filter by Generation (1-9), Type, and Group.</li>
-                <li><strong>Legends Z-A:</strong> New Mega Evolutions are not yet available in the public data API.</li>
-              </ul>
+              <h3 className="text-xl font-bold text-white mb-2">🛒 Market Rules & Costs</h3>
+              <p className="text-sm mb-4">Filtering the market helps you find what you need, but adds to the refresh cost.</p>
+              
+              <div className="bg-slate-800 rounded-xl overflow-hidden border border-slate-700 text-xs">
+                  <table className="w-full text-left">
+                      <thead className="bg-slate-900 text-slate-400">
+                          <tr>
+                              <th className="p-3">Filter Type</th>
+                              <th className="p-3">Cost Added</th>
+                          </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-700 text-slate-300">
+                          <tr>
+                              <td className="p-3">Base Refresh</td>
+                              <td className="p-3 font-mono">1,000</td>
+                          </tr>
+                          <tr>
+                              <td className="p-3">Specific Type</td>
+                              <td className="p-3 font-mono">+5,000</td>
+                          </tr>
+                          <tr>
+                              <td className="p-3">Specific Bonus</td>
+                              <td className="p-3 font-mono">+5,000</td>
+                          </tr>
+                          <tr>
+                              <td className="p-3">Class Filter</td>
+                              <td className="p-3 font-mono">
+                                  <div className="flex flex-col gap-1">
+                                      <span>Class F: -500</span>
+                                      <span>Class D: +1,000</span>
+                                      <span>Class C: +5,000</span>
+                                      <span>Class B: +10,000</span>
+                                      <span>Class A: +25,000</span>
+                                  </div>
+                              </td>
+                          </tr>
+                          <tr>
+                              <td className="p-3">Group Filter</td>
+                              <td className="p-3 font-mono">
+                                  <div className="flex flex-col gap-1">
+                                      <span>Starter: +1,000</span>
+                                      <span>Pseudo-Legendary: +5,000</span>
+                                      <span>Paradox: +10,000</span>
+                                      <span>Ultra Beast: +15,000</span>
+                                      <span>Mythical: +20,000</span>
+                                      <span>Legendary: +25,000</span>
+                                  </div>
+                              </td>
+                          </tr>
+                      </tbody>
+                  </table>
+              </div>
             </section>
 
           </div>

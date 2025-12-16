@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { PlayerState, GameTab, MarketPokemon, MarketFilter, Achievement } from './types';
 import { POKEMON_DATA, ACHIEVEMENTS } from './constants';
-import { generateStarterClass, generateMarketBatch, fetchPokemonData, calculateMultiplier, getNextEvolution } from './utils/marketGenerator';
+import { generateStarterClass, generateMarketBatch, fetchPokemonData, calculateMultiplier, getNextEvolution, calculateRefreshCost } from './utils/marketGenerator';
 import { StarterSelection } from './components/StarterSelection';
 import { SquadPanel } from './components/PokemonPanel';
 import { Marketplace } from './components/Marketplace';
@@ -126,7 +126,7 @@ const App: React.FC = () => {
 
   const handleMarketRefresh = useCallback(async (filter: MarketFilter, isPaid: boolean) => {
     if (isPaid) {
-        const cost = Math.floor(player.credits * 0.05);
+        const cost = calculateRefreshCost(filter);
         if (player.credits < cost) return;
         setPlayer(p => ({ ...p, credits: p.credits - cost }));
     }
@@ -188,8 +188,7 @@ const App: React.FC = () => {
     const nextPokedexId = await getNextEvolution(pokemon.pokedexId);
     
     if (!nextPokedexId) {
-        setToast({ message: "This Pokémon cannot evolve further!", visible: true });
-        setTimeout(() => setToast(t => ({ ...t, visible: false })), 3000);
+        // Just return silently, UI should have hidden button
         return; 
     }
 
