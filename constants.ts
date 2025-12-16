@@ -135,31 +135,6 @@ export const POKEMON_DATA: Record<string, { base: { apiName: string, name: strin
     }
 };
 
-export const GEN1_EVOLUTION_MAP: Record<number, number> = {
-    // Gen 1
-    1: 2, 2: 3,
-    4: 5, 5: 6,
-    7: 8, 8: 9,
-    10: 11, 11: 12,
-    13: 14, 14: 15,
-    16: 17, 17: 18,
-    // Gen 2
-    152: 153, 153: 154,
-    155: 156, 156: 157,
-    158: 159, 159: 160,
-    // Gen 3
-    252: 253, 253: 254,
-    255: 256, 256: 257,
-    258: 259, 259: 260,
-    // Popular
-    129: 130, // Magikarp -> Gyarados
-    133: 134, // Eevee -> Vaporeon
-    147: 148, 148: 149, // Dratini -> Dragonair -> Dragonite
-    246: 247, 247: 248, // Larvitar
-    371: 372, 372: 373, // Bagon
-    374: 375, 375: 376, // Beldum
-};
-
 export const MEGA_EVOLUTION_MAP: Record<number, boolean> = {
     3: true,
     6: true,
@@ -203,40 +178,40 @@ export const FUSION_PAIRS: Record<number, { partnerId: number, resultId: number,
     ]
 };
 
-// Current ID -> Next ID (Looping)
+// Current ID -> Next ID (LINEAR, NO LOOPS)
 export const FORM_CHAINS: Record<number, number> = {
-    // Zygarde: 10% (10118) -> 50% (718) -> Complete (10120) -> 10%
-    10118: 718, 718: 10120, 10120: 10118,
+    // Zygarde: 10% (10118) -> 50% (718) -> Complete (10120) -> [End]
+    10118: 718, 718: 10120,
     
-    // Dialga: Base (483) -> Origin (10245) -> Base
-    483: 10245, 10245: 483,
+    // Dialga: Base (483) -> Origin (10245) -> [End]
+    483: 10245,
     
-    // Palkia: Base (484) -> Origin (10246) -> Base
-    484: 10246, 10246: 484,
+    // Palkia: Base (484) -> Origin (10246) -> [End]
+    484: 10246,
 
-    // Giratina: Altered (487) -> Origin (10007) -> Altered
-    487: 10007, 10007: 487,
+    // Giratina: Altered (487) -> Origin (10007) -> [End]
+    487: 10007,
 
-    // Zacian: Hero (888) -> Crowned (10188) -> Hero
-    888: 10188, 10188: 888,
+    // Zacian: Hero (888) -> Crowned (10188) -> [End]
+    888: 10188,
 
-    // Zamazenta: Hero (889) -> Crowned (10189) -> Hero
-    889: 10189, 10189: 889,
+    // Zamazenta: Hero (889) -> Crowned (10189) -> [End]
+    889: 10189,
 
-    // Eternatus: Base (890) -> Eternamax (10190) -> Base
-    890: 10190, 10190: 890,
+    // Eternatus: Base (890) -> Eternamax (10190) -> [End]
+    890: 10190,
 
-    // Deoxys: Normal (386) -> Attack (10001) -> Defense (10002) -> Speed (10003) -> Normal
-    386: 10001, 10001: 10002, 10002: 10003, 10003: 386,
+    // Deoxys: Normal (386) -> Attack (10001) -> Defense (10002) -> Speed (10003) -> [End]
+    386: 10001, 10001: 10002, 10002: 10003,
 
-    // Shaymin: Land (492) -> Sky (10006) -> Land
-    492: 10006, 10006: 492,
+    // Shaymin: Land (492) -> Sky (10006) -> [End]
+    492: 10006,
 
-    // Hoopa: Confined (720) -> Unbound (10024) -> Confined
-    720: 10024, 10024: 720,
+    // Hoopa: Confined (720) -> Unbound (10024) -> [End]
+    720: 10024,
 
-    // Meloetta: Aria (648) -> Pirouette (10018) -> Aria
-    648: 10018, 10018: 648
+    // Meloetta: Aria (648) -> Pirouette (10018) -> [End]
+    648: 10018
 };
 
 // --- ACHIEVEMENTS SYSTEM ---

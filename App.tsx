@@ -37,10 +37,18 @@ const App: React.FC = () => {
   const [isHelpOpen, setIsHelpOpen] = useState(false);
   const [toast, setToast] = useState<{message: string, visible: boolean}>({ message: '', visible: false });
 
-  // Market State
+  // Market State (Lifted for Persistence)
   const [marketItems, setMarketItems] = useState<MarketPokemon[]>([]);
   const [marketTargetTime, setMarketTargetTime] = useState<number>(Date.now());
   const [marketLoading, setMarketLoading] = useState(false);
+  const [marketFilter, setMarketFilter] = useState<MarketFilter>({ 
+      targetClass: 'ALL', 
+      targetBonus: 'ALL', 
+      targetGen: 'ALL', 
+      targetType: [], 
+      targetGroup: 'ALL' 
+  });
+  const [showMarketFilters, setShowMarketFilters] = useState(false);
 
   // --- Persistence Logic ---
   useEffect(() => {
@@ -176,8 +184,14 @@ const App: React.FC = () => {
     const pokemon = player.inventory.find(p => p.uniqueId === uniqueId);
     if (!pokemon) return;
 
+    // Show loading state implicitly or via toast
     const nextPokedexId = await getNextEvolution(pokemon.pokedexId);
-    if (!nextPokedexId) return; 
+    
+    if (!nextPokedexId) {
+        setToast({ message: "This Pokémon cannot evolve further!", visible: true });
+        setTimeout(() => setToast(t => ({ ...t, visible: false })), 3000);
+        return; 
+    }
 
     const data = await fetchPokemonData(nextPokedexId);
     if (!data) return;
@@ -206,6 +220,9 @@ const App: React.FC = () => {
             inventory: inv
         };
     });
+    
+    setToast({ message: `Evolved into ${data.name}!`, visible: true });
+    setTimeout(() => setToast(t => ({ ...t, visible: false })), 3000);
   };
 
   const handleFusion = async (baseId: string, partnerId: string, resultPokedexId: number, cost: number) => {
@@ -287,6 +304,9 @@ const App: React.FC = () => {
               inventory: inv
           };
       });
+
+      setToast({ message: `Transformed into ${data.name}!`, visible: true });
+      setTimeout(() => setToast(t => ({ ...t, visible: false })), 3000);
   };
 
   const handleBuyPokemon = (pokemon: MarketPokemon, cost: number) => {
@@ -363,7 +383,7 @@ const App: React.FC = () => {
       {/* Toast Notification */}
       <div className={`fixed top-4 left-1/2 -translate-x-1/2 z-[100] transition-all duration-500 ${toast.visible ? 'translate-y-0 opacity-100' : '-translate-y-20 opacity-0'}`}>
           <div className="bg-gradient-to-r from-yellow-500 to-amber-600 text-black font-bold px-6 py-3 rounded-full shadow-[0_0_20px_rgba(234,179,8,0.5)] flex items-center gap-2">
-              <span className="text-xl">🏆</span>
+              <span className="text-xl">ℹ️</span>
               {toast.message}
           </div>
       </div>
@@ -380,7 +400,7 @@ const App: React.FC = () => {
                   ?
               </button>
               <div className="font-display font-bold text-xl tracking-tighter text-transparent bg-clip-text bg-gradient-to-r from-violet-400 to-fuchsia-400">
-                PokeCassino - Rocket
+                PokéCassino - Rocket
               </div>
           </div>
           <div className="flex items-center gap-2 bg-slate-900/80 px-4 py-2 rounded-xl border border-slate-700 shadow-inner">
@@ -433,6 +453,10 @@ const App: React.FC = () => {
                 loading={marketLoading}
                 onBuy={handleBuyPokemon} 
                 onRefresh={handleMarketRefresh}
+                filter={marketFilter}
+                setFilter={setMarketFilter}
+                showFilters={showMarketFilters}
+                setShowFilters={setShowMarketFilters}
              />
         ) : activeTab === 'collection' ? (
              <Collection 

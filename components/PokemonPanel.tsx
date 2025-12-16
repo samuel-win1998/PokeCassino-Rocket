@@ -1,7 +1,7 @@
 import React from 'react';
 import { MarketPokemon } from '../types';
 import { Button } from './ui/Button';
-import { CLASS_COLORS, GEN1_EVOLUTION_MAP, MEGA_EVOLUTION_MAP, FUSION_PAIRS, FORM_CHAINS } from '../constants';
+import { CLASS_COLORS, MEGA_EVOLUTION_MAP, FUSION_PAIRS, FORM_CHAINS } from '../constants';
 
 interface SquadPanelProps {
   squad: MarketPokemon[];
@@ -22,29 +22,25 @@ export const SquadPanel: React.FC<SquadPanelProps> = ({ squad, allInventory, cre
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 gap-4">
         {squad.map((pokemon) => {
           // 1. Check Standard/Mega Evolution
-          let nextStageCost = 0;
-          let canEvolve = false;
-          let isMega = false;
+          // Default logic: Assume everyone can *try* to evolve for standard cost, unless they are known mega/form.
+          // The API check in App.tsx will reject if no evolution exists.
+          let nextStageCost = 5000;
           let evoLabel = 'Evolve';
+          let isMega = false;
+          let isFormChange = false;
 
-          if (GEN1_EVOLUTION_MAP[pokemon.pokedexId]) {
-              canEvolve = true;
-              nextStageCost = 5000;
-          } else if (MEGA_EVOLUTION_MAP[pokemon.pokedexId]) {
-              canEvolve = true;
+          // Check for Mega
+          if (MEGA_EVOLUTION_MAP[pokemon.pokedexId]) {
               isMega = true;
               nextStageCost = 50000;
               evoLabel = 'MEGA EVOLVE';
           }
 
           // 2. Check Fusions (Necrozma, Kyurem, Calyrex)
-          // To fuse, the Partner must be in the inventory (can be equipped or unequipped, usually unequipped is safer logic but let's check allInventory)
-          // Note: FUSION_PAIRS[pokemon.pokedexId] returns array of options
           const fusionOptions = FUSION_PAIRS[pokemon.pokedexId];
           let availableFusion = null;
 
           if (fusionOptions) {
-              // Find if we have the partner
               for (const option of fusionOptions) {
                   const partner = allInventory.find(p => p.pokedexId === option.partnerId && p.uniqueId !== pokemon.uniqueId);
                   if (partner) {
@@ -53,15 +49,15 @@ export const SquadPanel: React.FC<SquadPanelProps> = ({ squad, allInventory, cre
                           partnerUniqueId: partner.uniqueId,
                           cost: 100000 // Fusion Cost
                       };
-                      break; // Just show first available for simplicity or could map buttons
+                      break;
                   }
               }
           }
 
-          // 3. Check Form Changes (Zygarde)
+          // 3. Check Form Changes (Linear, One-Way)
           const nextFormId = FORM_CHAINS[pokemon.pokedexId];
           const formChangeCost = 25000;
-
+          
           return (
             <div key={pokemon.uniqueId} className={`glass-panel p-4 rounded-xl flex items-center gap-4 relative overflow-hidden border ${pokemon.isShiny ? 'border-yellow-400' : CLASS_COLORS[pokemon.class].split(' ')[1]}`}>
                {/* Background Glow */}
@@ -107,19 +103,16 @@ export const SquadPanel: React.FC<SquadPanelProps> = ({ squad, allInventory, cre
                           >
                              Change Form ${formChangeCost.toLocaleString()}
                           </Button>
-                      ) : canEvolve ? (
-                            <Button 
-                              variant={isMega ? 'primary' : 'success'} 
-                              disabled={credits < nextStageCost}
-                              onClick={() => onEvolve(pokemon.uniqueId, nextStageCost)}
-                              className="py-1 px-3 text-xs w-full"
-                            >
-                              {evoLabel} ${nextStageCost.toLocaleString()}
-                            </Button>
                       ) : (
-                        <div className="text-xs text-slate-500 italic border border-slate-700/50 rounded px-2 py-1 text-center">
-                            Max Potential
-                        </div>
+                          // Standard Evolution Button (Shown by default, logic handles failure)
+                          <Button 
+                            variant={isMega ? 'primary' : 'success'} 
+                            disabled={credits < nextStageCost}
+                            onClick={() => onEvolve(pokemon.uniqueId, nextStageCost)}
+                            className="py-1 px-3 text-xs w-full"
+                          >
+                            {evoLabel} ${nextStageCost.toLocaleString()}
+                          </Button>
                       )}
                   </div>
                </div>

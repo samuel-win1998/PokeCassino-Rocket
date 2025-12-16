@@ -85,9 +85,6 @@ const getValidIdPool = async (filter: MarketFilter): Promise<number[]> => {
             case 'mythical': pool = MYTHICAL_IDS; break;
         }
     } else if (filter.targetType.length > 0) {
-        // Fetch for all types and union
-        // This avoids fetching the entire 1000+ list when only a few types are selected.
-        // However, if many types are selected, it might do multiple requests.
         try {
             const typePromises = filter.targetType.map(t => fetch(`https://pokeapi.co/api/v2/type/${t}`).then(res => res.json()));
             const results = await Promise.all(typePromises);
@@ -224,10 +221,13 @@ export const getNextEvolution = async (currentId: number): Promise<number | null
             
             if (linkId === currentId) {
                 if (link.evolves_to && link.evolves_to.length > 0) {
-                    const nextUrl = link.evolves_to[0].species.url;
+                    // Random Branching Logic
+                    // If length > 1 (e.g., Eevee, Tyrogue), pick random index
+                    const randomIndex = Math.floor(Math.random() * link.evolves_to.length);
+                    const nextUrl = link.evolves_to[randomIndex].species.url;
                     return parseInt(nextUrl.split('/').slice(-2, -1)[0]);
                 }
-                return null; 
+                return null; // No evolution found
             }
             
             for (const child of link.evolves_to) {
@@ -239,8 +239,10 @@ export const getNextEvolution = async (currentId: number): Promise<number | null
 
         const nextId = findNext(currentLink);
 
+        // Check for Megas if standard evolution not found (optional fallback)
         if (!nextId) {
              const varieties = speciesData.varieties;
+             // Naive Mega check: look for 'mega' in name but not 'mega-x'/y unless generic
              const mega = varieties.find((v: any) => v.pokemon.name.includes('mega') && !v.pokemon.name.includes('mega-x')); 
              if (mega) {
                  const megaId = parseInt(mega.pokemon.url.split('/').slice(-2, -1)[0]);

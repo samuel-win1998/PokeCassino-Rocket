@@ -10,18 +10,18 @@ interface MarketplaceProps {
   loading: boolean;
   onBuy: (pokemon: MarketPokemon, cost: number) => void;
   onRefresh: (filter: MarketFilter, isPaid: boolean) => void;
+  // Props for lifted state
+  filter: MarketFilter;
+  setFilter: React.Dispatch<React.SetStateAction<MarketFilter>>;
+  showFilters: boolean;
+  setShowFilters: React.Dispatch<React.SetStateAction<boolean>>;
 }
 
-export const Marketplace: React.FC<MarketplaceProps> = ({ credits, items, targetTime, loading, onBuy, onRefresh }) => {
+export const Marketplace: React.FC<MarketplaceProps> = ({ 
+    credits, items, targetTime, loading, onBuy, onRefresh,
+    filter, setFilter, showFilters, setShowFilters
+}) => {
   const [timeLeft, setTimeLeft] = useState(0);
-  const [filter, setFilter] = useState<MarketFilter>({ 
-      targetClass: 'ALL', 
-      targetBonus: 'ALL', 
-      targetGen: 'ALL', 
-      targetType: [], 
-      targetGroup: 'ALL' 
-  });
-  const [showFilters, setShowFilters] = useState(false);
 
   const refreshCost = Math.floor(credits * 0.05);
 
