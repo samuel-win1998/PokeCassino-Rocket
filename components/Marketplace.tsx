@@ -101,7 +101,7 @@ export const Marketplace: React.FC<MarketplaceProps> = ({
                             onChange={(e) => setFilter({...filter, targetGen: e.target.value === 'ALL' ? 'ALL' : parseInt(e.target.value)})}
                          >
                              <option value="ALL">All Generations</option>
-                             {[1,2,3,4,5,6,7,8,9].map(g => <option key={g} value={g}>Gen {g}</option>)}
+                             {[1,2,3,4,5,6,7,8,9].map(g => <option key={g} value={g}>Gen {g} (+5k)</option>)}
                          </select>
                     </div>
 

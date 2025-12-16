@@ -37,6 +37,16 @@ export const HelpModal: React.FC<HelpModalProps> = ({ isOpen, onClose }) => {
             </section>
 
             <section>
+                <h3 className="text-xl font-bold text-white mb-2">💰 Selling Pokémon</h3>
+                <p className="text-sm leading-relaxed mb-2">
+                    Need quick cash or want to clear space?
+                </p>
+                <div className="bg-slate-800 p-3 rounded-xl border border-emerald-500/30 font-mono text-xs">
+                    You can sell any Pokémon (except your starter) back to the market for <span className="text-emerald-400">75% of its purchase price</span>.
+                </div>
+            </section>
+
+            <section>
                 <h3 className="text-xl font-bold text-white mb-2">✨ Shiny Pokémon</h3>
                 <p className="text-sm leading-relaxed mb-2">
                     Rare variants of Pokémon that have a <strong>2% chance</strong> to appear in the market.
@@ -66,9 +76,9 @@ export const HelpModal: React.FC<HelpModalProps> = ({ isOpen, onClose }) => {
                         <span className="text-xs italic text-slate-500 mt-1 block">Requires Base in Squad & Partner in Inventory.</span>
                     </div>
                     <div className="bg-slate-800 p-2 rounded border border-slate-700">
-                        <span className="block font-bold text-white">Zygarde Cube</span>
-                        <p className="text-slate-400">Cycle Zygarde forms:</p>
-                        <p className="font-mono text-emerald-400">10% ➡ 50% ➡ Complete</p>
+                        <span className="block font-bold text-white">Zygarde Cube / Orbs</span>
+                        <p className="text-slate-400">Cycle Forms / Primal:</p>
+                        <p className="font-mono text-emerald-400">Zygarde, Kyogre, Groudon...</p>
                     </div>
                 </div>
             </section>
@@ -118,6 +128,10 @@ export const HelpModal: React.FC<HelpModalProps> = ({ isOpen, onClose }) => {
                           <tr>
                               <td className="p-3">Base Refresh</td>
                               <td className="p-3 font-mono">1,000</td>
+                          </tr>
+                          <tr>
+                              <td className="p-3">Specific Generation</td>
+                              <td className="p-3 font-mono">+5,000</td>
                           </tr>
                           <tr>
                               <td className="p-3">Specific Type</td>

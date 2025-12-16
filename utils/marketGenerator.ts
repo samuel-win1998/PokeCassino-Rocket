@@ -36,6 +36,11 @@ export const calculateMultiplier = (totalStats: number, pClass: PokemonClass): n
 export const calculateRefreshCost = (filter: MarketFilter): number => {
     let cost = 1000; // Base Cost
 
+    // Generation Filter (+5000)
+    if (filter.targetGen !== 'ALL') {
+        cost += 5000;
+    }
+
     // Type Filter (+5000 if specific types selected)
     if (filter.targetType && filter.targetType.length > 0) {
         cost += 5000;

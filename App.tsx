@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { PlayerState, GameTab, MarketPokemon, MarketFilter, Achievement } from './types';
-import { POKEMON_DATA, ACHIEVEMENTS } from './constants';
+import { POKEMON_DATA, ACHIEVEMENTS, CLASS_FIXED_MULTIPLIERS } from './constants';
 import { generateStarterClass, generateMarketBatch, fetchPokemonData, calculateMultiplier, getNextEvolution, calculateRefreshCost } from './utils/marketGenerator';
 import { StarterSelection } from './components/StarterSelection';
 import { SquadPanel } from './components/PokemonPanel';
@@ -27,7 +27,8 @@ const App: React.FC = () => {
         pokemonBought: 0,
         highestWealth: 1000
     },
-    completedAchievementIds: []
+    completedAchievementIds: [],
+    hasPickedStarter: false
   });
 
   const [isLoaded, setIsLoaded] = useState(false);
@@ -56,15 +57,27 @@ const App: React.FC = () => {
     if (savedData) {
       try {
         const parsed = JSON.parse(savedData);
+        
+        // Data Sanitization: Ensure all inventory items have a uniqueId
+        const sanitizedInventory = (parsed.inventory || []).map((p: any) => ({
+            ...p,
+            uniqueId: p.uniqueId || `legacy-${p.pokedexId}-${Date.now()}-${Math.random()}`
+        }));
+
         setPlayer({
           credits: parsed.credits || 1000,
-          inventory: parsed.inventory || [],
+          inventory: sanitizedInventory,
           equippedPokemonIds: parsed.equippedPokemonIds || [],
           starterEvolutionStage: parsed.starterEvolutionStage || 0,
           stats: parsed.stats || { 
              totalWinsRoulette: 0, totalWinsSlots: 0, totalBetsRocket: 0, pokemonBought: 0, highestWealth: 1000 
           },
-          completedAchievementIds: parsed.completedAchievementIds || []
+          completedAchievementIds: parsed.completedAchievementIds || [],
+          // Migration: if hasPickedStarter is undefined, assume true if they have/had inventory logic, 
+          // but strictly checking if the save existed is usually enough. 
+          // If inventory > 0, they definitely started. If inventory is 0 on old save, we assume they started 
+          // to avoid reset if we just added this feature.
+          hasPickedStarter: parsed.hasPickedStarter ?? true 
         });
       } catch (e) {
         console.error("Failed to load save", e);
@@ -74,7 +87,8 @@ const App: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    if (isLoaded && player.inventory.length > 0) {
+    // Only save if loaded to avoid overwriting with empty init state accidentally
+    if (isLoaded) {
       localStorage.setItem(SAVE_KEY, JSON.stringify(player));
     }
   }, [player, isLoaded]);
@@ -153,6 +167,12 @@ const App: React.FC = () => {
     const { name, sprite, totalStats, types } = await fetchPokemonData(initialId) as any;
     const multiplier = calculateMultiplier(totalStats, starterClass);
 
+    // Calculate theoretical price for starter (Stats * 10 * Class * Rarity(2))
+    const basePrice = totalStats * 10;
+    const classFactor = CLASS_FIXED_MULTIPLIERS[starterClass];
+    const rarityMult = 2; // Standard starter rarity multiplier
+    const starterPrice = Math.floor(basePrice * classFactor * rarityMult);
+
     const starterPokemon: MarketPokemon = {
       uniqueId: 'starter-' + Date.now(),
       pokedexId: initialId,
@@ -161,7 +181,7 @@ const App: React.FC = () => {
       class: starterClass,
       bonusType: chain.bonusType,
       multiplier: multiplier,
-      price: 0,
+      price: starterPrice,
       types: types,
       totalStats: totalStats,
       isStarter: true,
@@ -174,7 +194,8 @@ const App: React.FC = () => {
       inventory: [starterPokemon],
       equippedPokemonIds: [starterPokemon.uniqueId],
       stats: { ...player.stats, pokemonBought: 0, highestWealth: 1000 },
-      completedAchievementIds: []
+      completedAchievementIds: [],
+      hasPickedStarter: true
     });
   };
 
@@ -321,6 +342,29 @@ const App: React.FC = () => {
       setMarketItems(prev => prev.filter(i => i.uniqueId !== pokemon.uniqueId));
   };
 
+  const handleSellPokemon = (id: string, price: number) => {
+      // Robust selling logic
+      setPlayer(prev => {
+          // Check if item actually exists
+          const itemExists = prev.inventory.some(p => p.uniqueId === id);
+          if (!itemExists) return prev;
+
+          // Remove from inventory
+          const newInventory = prev.inventory.filter(p => p.uniqueId !== id);
+          // Remove from equipped if present
+          const newEquipped = prev.equippedPokemonIds.filter(eId => eId !== id);
+          
+          return {
+              ...prev,
+              credits: prev.credits + price,
+              inventory: newInventory,
+              equippedPokemonIds: newEquipped
+          };
+      });
+      setToast({ message: `Sold for +${price.toLocaleString()} credits!`, visible: true });
+      setTimeout(() => setToast(t => ({ ...t, visible: false })), 3000);
+  };
+
   const handleToggleEquip = (id: string) => {
       setPlayer(prev => {
           const isEquipped = prev.equippedPokemonIds.includes(id);
@@ -371,9 +415,19 @@ const App: React.FC = () => {
     }, 0);
   };
 
+  const NAV_ITEMS: { id: GameTab; label: string; icon: string }[] = [
+    { id: 'roulette', label: 'Roulette', icon: '🔴' },
+    { id: 'rocket', label: 'Rocket', icon: '🚀' },
+    { id: 'slots', label: 'Slots', icon: '🎰' },
+    { id: 'market', label: 'Market', icon: '🛒' },
+    { id: 'collection', label: 'Storage', icon: '🎒' },
+    { id: 'achievements', label: 'Awards', icon: '🏆' },
+  ];
+
   if (!isLoaded) return <div className="min-h-screen bg-slate-900 flex items-center justify-center text-white">Loading...</div>;
 
-  if (player.inventory.length === 0) {
+  // Render starter selection ONLY if they haven't picked one yet (and it's a new save)
+  if (!player.hasPickedStarter) {
     return <StarterSelection onSelect={handleStarterSelect} />;
   }
 
@@ -423,20 +477,25 @@ const App: React.FC = () => {
             />
         )}
 
-        <div className="flex justify-center mb-8 gap-1 bg-slate-900/50 p-1 rounded-2xl max-w-2xl mx-auto overflow-x-auto">
-          {(['roulette', 'rocket', 'slots', 'market', 'collection', 'achievements'] as GameTab[]).map(tab => (
+        <div className="grid grid-cols-3 sm:grid-cols-3 lg:grid-cols-6 gap-3 mb-8 max-w-5xl mx-auto px-2">
+          {NAV_ITEMS.map((item) => (
             <button
-              key={tab}
-              onClick={() => setActiveTab(tab)}
-              className={`py-3 px-4 md:px-6 rounded-xl font-bold transition-all whitespace-nowrap ${
-                activeTab === tab 
-                  ? 'bg-violet-600 text-white shadow-lg' 
-                  : 'text-slate-400 hover:text-white hover:bg-white/5'
-              } capitalize`}
+              key={item.id}
+              onClick={() => setActiveTab(item.id)}
+              className={`
+                relative flex flex-col items-center justify-center py-4 rounded-2xl font-bold transition-all border group
+                ${
+                  activeTab === item.id 
+                    ? 'bg-violet-600 border-violet-500 text-white shadow-[0_0_15px_rgba(124,58,237,0.3)] -translate-y-1' 
+                    : 'bg-slate-800/40 border-white/5 text-slate-400 hover:bg-slate-800 hover:text-white hover:border-white/10'
+                }
+              `}
             >
-              {tab}
-              {tab === 'achievements' && (
-                  <span className="ml-2 bg-slate-900 text-xs px-1.5 py-0.5 rounded-full text-slate-300">
+              <span className="text-2xl mb-1 filter drop-shadow-lg transition-transform group-hover:scale-110">{item.icon}</span>
+              <span className="text-[10px] md:text-xs uppercase tracking-wider">{item.label}</span>
+              
+              {item.id === 'achievements' && (
+                  <span className="absolute top-2 right-2 text-[10px] bg-slate-900 border border-slate-700 text-slate-300 px-1.5 rounded-full">
                       {player.completedAchievementIds.length}/{ACHIEVEMENTS.length}
                   </span>
               )}
@@ -461,7 +520,8 @@ const App: React.FC = () => {
              <Collection 
                 inventory={player.inventory} 
                 equippedIds={player.equippedPokemonIds} 
-                onToggleEquip={handleToggleEquip} 
+                onToggleEquip={handleToggleEquip}
+                onSell={handleSellPokemon}
              />
         ) : activeTab === 'achievements' ? (
              <Achievements player={player} />

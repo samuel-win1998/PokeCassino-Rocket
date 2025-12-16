@@ -38,6 +38,7 @@ export interface PlayerState {
   starterEvolutionStage: number;
   stats: PlayerStats;
   completedAchievementIds: string[];
+  hasPickedStarter: boolean;
 }
 
 export interface Achievement {

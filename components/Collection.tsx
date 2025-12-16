@@ -1,15 +1,18 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { MarketPokemon } from '../types';
 import { Button } from './ui/Button';
-import { CLASS_COLORS } from '../constants';
+import { CLASS_COLORS, CLASS_FIXED_MULTIPLIERS } from '../constants';
 
 interface CollectionProps {
   inventory: MarketPokemon[];
   equippedIds: string[];
   onToggleEquip: (id: string) => void;
+  onSell: (id: string, price: number) => void;
 }
 
-export const Collection: React.FC<CollectionProps> = ({ inventory, equippedIds, onToggleEquip }) => {
+export const Collection: React.FC<CollectionProps> = ({ inventory, equippedIds, onToggleEquip, onSell }) => {
+  const [confirmSellId, setConfirmSellId] = useState<string | null>(null);
+
   if (inventory.length === 0) {
     return (
       <div className="text-center py-20 text-slate-500">
@@ -39,6 +42,18 @@ export const Collection: React.FC<CollectionProps> = ({ inventory, equippedIds, 
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
         {sortedInventory.map((item) => {
            const isEquipped = equippedIds.includes(item.uniqueId);
+           const isConfirming = confirmSellId === item.uniqueId;
+           
+           // Calculate price for old saves (where price was 0 for starters)
+           let baseValue = item.price;
+           if (!baseValue && item.isStarter) {
+               const rawPrice = item.totalStats * 10;
+               const classMult = CLASS_FIXED_MULTIPLIERS[item.class];
+               baseValue = Math.floor(rawPrice * classMult * 2);
+           }
+           
+           const sellPrice = Math.floor((baseValue || 1000) * 0.75);
+           
            return (
              <div 
                 key={item.uniqueId} 
@@ -80,14 +95,33 @@ export const Collection: React.FC<CollectionProps> = ({ inventory, equippedIds, 
                  </div>
                </div>
 
-               <Button 
-                 variant={isEquipped ? 'secondary' : 'primary'} 
-                 onClick={() => onToggleEquip(item.uniqueId)}
-                 className="mt-auto py-2 text-sm"
-                 disabled={!isEquipped && equippedIds.length >= 6}
-               >
-                 {isEquipped ? 'Unequip' : equippedIds.length >= 6 ? 'Full Team' : 'Equip'}
-               </Button>
+               <div className="mt-auto flex gap-2">
+                   <Button 
+                     variant={isEquipped ? 'secondary' : 'primary'} 
+                     onClick={() => onToggleEquip(item.uniqueId)}
+                     className="flex-1 py-2 text-xs"
+                     disabled={!isEquipped && equippedIds.length >= 6}
+                   >
+                     {isEquipped ? 'Unequip' : 'Equip'}
+                   </Button>
+                   
+                   <Button 
+                        variant={isConfirming ? "danger" : "secondary"}
+                        onClick={() => {
+                            if (isConfirming) {
+                                onSell(item.uniqueId, sellPrice);
+                                setConfirmSellId(null);
+                            } else {
+                                setConfirmSellId(item.uniqueId);
+                                // Reset confirm state after 3 seconds if not clicked
+                                setTimeout(() => setConfirmSellId(null), 3000);
+                            }
+                        }}
+                        className={`py-2 px-3 text-xs transition-all ${isConfirming ? 'animate-pulse font-bold' : ''}`}
+                    >
+                        {isConfirming ? 'CONFIRM?' : `$${sellPrice.toLocaleString()}`}
+                   </Button>
+               </div>
              </div>
            );
         })}

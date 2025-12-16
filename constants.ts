@@ -211,7 +211,13 @@ export const FORM_CHAINS: Record<number, number> = {
     720: 10024,
 
     // Meloetta: Aria (648) -> Pirouette (10018) -> [End]
-    648: 10018
+    648: 10018,
+
+    // Kyogre: Base (382) -> Primal (10077) -> [End]
+    382: 10077,
+
+    // Groudon: Base (383) -> Primal (10078) -> [End]
+    383: 10078
 };
 
 // --- ACHIEVEMENTS SYSTEM ---
