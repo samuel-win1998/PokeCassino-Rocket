@@ -1,0 +1,482 @@
+import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { PlayerState, GameTab, MarketPokemon, MarketFilter, Achievement } from './types';
+import { POKEMON_DATA, ACHIEVEMENTS } from './constants';
+import { generateStarterClass, generateMarketBatch, fetchPokemonData, calculateMultiplier, getNextEvolution } from './utils/marketGenerator';
+import { StarterSelection } from './components/StarterSelection';
+import { SquadPanel } from './components/PokemonPanel';
+import { Marketplace } from './components/Marketplace';
+import { Collection } from './components/Collection';
+import { HelpModal } from './components/HelpModal';
+import { Achievements } from './components/Achievements';
+import { Roulette } from './components/games/Roulette';
+import { Rocket } from './components/games/Rocket';
+import { Slots } from './components/games/Slots';
+
+const SAVE_KEY = 'pokecasino_save_v1';
+
+const App: React.FC = () => {
+  const [player, setPlayer] = useState<PlayerState>({
+    credits: 1000,
+    inventory: [],
+    equippedPokemonIds: [], 
+    starterEvolutionStage: 0,
+    stats: {
+        totalWinsRoulette: 0,
+        totalWinsSlots: 0,
+        totalBetsRocket: 0,
+        pokemonBought: 0,
+        highestWealth: 1000
+    },
+    completedAchievementIds: []
+  });
+
+  const [isLoaded, setIsLoaded] = useState(false);
+  const [activeTab, setActiveTab] = useState<GameTab>('roulette');
+  
+  // UI State
+  const [isHelpOpen, setIsHelpOpen] = useState(false);
+  const [toast, setToast] = useState<{message: string, visible: boolean}>({ message: '', visible: false });
+
+  // Market State
+  const [marketItems, setMarketItems] = useState<MarketPokemon[]>([]);
+  const [marketTargetTime, setMarketTargetTime] = useState<number>(Date.now());
+  const [marketLoading, setMarketLoading] = useState(false);
+
+  // --- Persistence Logic ---
+  useEffect(() => {
+    const savedData = localStorage.getItem(SAVE_KEY);
+    if (savedData) {
+      try {
+        const parsed = JSON.parse(savedData);
+        setPlayer({
+          credits: parsed.credits || 1000,
+          inventory: parsed.inventory || [],
+          equippedPokemonIds: parsed.equippedPokemonIds || [],
+          starterEvolutionStage: parsed.starterEvolutionStage || 0,
+          stats: parsed.stats || { 
+             totalWinsRoulette: 0, totalWinsSlots: 0, totalBetsRocket: 0, pokemonBought: 0, highestWealth: 1000 
+          },
+          completedAchievementIds: parsed.completedAchievementIds || []
+        });
+      } catch (e) {
+        console.error("Failed to load save", e);
+      }
+    }
+    setIsLoaded(true);
+  }, []);
+
+  useEffect(() => {
+    if (isLoaded && player.inventory.length > 0) {
+      localStorage.setItem(SAVE_KEY, JSON.stringify(player));
+    }
+  }, [player, isLoaded]);
+
+  // --- Achievement System ---
+  const checkAchievements = useCallback((currentPlayer: PlayerState) => {
+    const newCompletedIds: string[] = [];
+    let rewardTotal = 0;
+    let newAchievementsTitle = '';
+
+    ACHIEVEMENTS.forEach(ach => {
+        if (!currentPlayer.completedAchievementIds.includes(ach.id)) {
+            if (ach.condition(currentPlayer)) {
+                newCompletedIds.push(ach.id);
+                rewardTotal += ach.reward;
+                newAchievementsTitle = ach.title;
+            }
+        }
+    });
+
+    if (newCompletedIds.length > 0) {
+        // Show Toast
+        setToast({ 
+            message: `Achievement Unlocked: ${newAchievementsTitle}${newCompletedIds.length > 1 ? ` +${newCompletedIds.length - 1} more` : ''} (+${rewardTotal.toLocaleString()})`, 
+            visible: true 
+        });
+        setTimeout(() => setToast(t => ({ ...t, visible: false })), 4000);
+
+        setPlayer(prev => ({
+            ...prev,
+            credits: prev.credits + rewardTotal,
+            completedAchievementIds: [...prev.completedAchievementIds, ...newCompletedIds],
+            // Update wealth stats again in case reward bumped it
+            stats: {
+                ...prev.stats,
+                highestWealth: Math.max(prev.stats.highestWealth, prev.credits + rewardTotal)
+            }
+        }));
+    }
+  }, []);
+
+  // Check achievements on every stats/inventory change
+  useEffect(() => {
+      if (!isLoaded) return;
+      checkAchievements(player);
+  }, [player.credits, player.stats, player.inventory, isLoaded, checkAchievements]);
+
+  // --- Handlers ---
+
+  const handleMarketRefresh = useCallback(async (filter: MarketFilter, isPaid: boolean) => {
+    if (isPaid) {
+        const cost = Math.floor(player.credits * 0.05);
+        if (player.credits < cost) return;
+        setPlayer(p => ({ ...p, credits: p.credits - cost }));
+    }
+
+    setMarketLoading(true);
+    const effectiveFilter = {
+        ...filter,
+        targetGen: filter.targetGen || 'ALL',
+        targetType: filter.targetType || [],
+        targetGroup: filter.targetGroup || 'ALL'
+    };
+    
+    const newItems = await generateMarketBatch(12, effectiveFilter);
+    setMarketItems(newItems);
+    setMarketTargetTime(Date.now() + 60000);
+    setMarketLoading(false);
+  }, [player.credits]);
+
+  const handleStarterSelect = async (id: string) => {
+    const chain = POKEMON_DATA[id];
+    const starterClass = generateStarterClass(); 
+    const initialId = id === 'bulbasaur' ? 1 : id === 'charmander' ? 4 : 7;
+    
+    const { name, sprite, totalStats, types } = await fetchPokemonData(initialId) as any;
+    const multiplier = calculateMultiplier(totalStats, starterClass);
+
+    const starterPokemon: MarketPokemon = {
+      uniqueId: 'starter-' + Date.now(),
+      pokedexId: initialId,
+      name: name,
+      sprite: sprite,
+      class: starterClass,
+      bonusType: chain.bonusType,
+      multiplier: multiplier,
+      price: 0,
+      types: types,
+      totalStats: totalStats,
+      isStarter: true,
+      isShiny: false
+    };
+
+    setPlayer({ 
+      ...player, 
+      credits: 1000, 
+      inventory: [starterPokemon],
+      equippedPokemonIds: [starterPokemon.uniqueId],
+      stats: { ...player.stats, pokemonBought: 0, highestWealth: 1000 },
+      completedAchievementIds: []
+    });
+  };
+
+  const handleEvolution = async (uniqueId: string, cost: number) => {
+    if (player.credits < cost) return;
+
+    const pokemon = player.inventory.find(p => p.uniqueId === uniqueId);
+    if (!pokemon) return;
+
+    const nextPokedexId = await getNextEvolution(pokemon.pokedexId);
+    if (!nextPokedexId) return; 
+
+    const data = await fetchPokemonData(nextPokedexId);
+    if (!data) return;
+
+    let newMultiplier = calculateMultiplier(data.totalStats, pokemon.class);
+    if (pokemon.isShiny) newMultiplier *= 1.2;
+
+    setPlayer(prev => {
+        const inv = [...prev.inventory];
+        const idx = inv.findIndex(p => p.uniqueId === uniqueId);
+        if (idx === -1) return prev;
+
+        inv[idx] = {
+            ...inv[idx],
+            name: data.name,
+            sprite: pokemon.isShiny ? data.shinySprite : data.sprite,
+            pokedexId: nextPokedexId,
+            multiplier: newMultiplier,
+            types: data.types,
+            totalStats: data.totalStats
+        };
+
+        return {
+            ...prev,
+            credits: prev.credits - cost,
+            inventory: inv
+        };
+    });
+  };
+
+  const handleFusion = async (baseId: string, partnerId: string, resultPokedexId: number, cost: number) => {
+      if (player.credits < cost) return;
+
+      const basePokemon = player.inventory.find(p => p.uniqueId === baseId);
+      const partnerPokemon = player.inventory.find(p => p.uniqueId === partnerId);
+      if (!basePokemon || !partnerPokemon) return;
+
+      const data = await fetchPokemonData(resultPokedexId);
+      if (!data) return;
+
+      // New Stats
+      let newMultiplier = calculateMultiplier(data.totalStats, basePokemon.class);
+      if (basePokemon.isShiny) newMultiplier *= 1.2; // Inherit shiny from base
+
+      setPlayer(prev => {
+          // Remove partner, update base to result
+          const invWithoutPartner = prev.inventory.filter(p => p.uniqueId !== partnerId);
+          const baseIndex = invWithoutPartner.findIndex(p => p.uniqueId === baseId);
+          
+          if (baseIndex === -1) return prev;
+
+          invWithoutPartner[baseIndex] = {
+              ...invWithoutPartner[baseIndex],
+              pokedexId: resultPokedexId,
+              name: data.name,
+              sprite: basePokemon.isShiny ? data.shinySprite : data.sprite,
+              types: data.types,
+              totalStats: data.totalStats,
+              multiplier: newMultiplier
+          };
+
+          // Also remove partner from equipped if equipped
+          const newEquipped = prev.equippedPokemonIds.filter(id => id !== partnerId);
+
+          return {
+              ...prev,
+              credits: prev.credits - cost,
+              inventory: invWithoutPartner,
+              equippedPokemonIds: newEquipped
+          };
+      });
+      
+      setToast({ message: `${data.name} Created!`, visible: true });
+      setTimeout(() => setToast(t => ({ ...t, visible: false })), 3000);
+  };
+
+  const handleFormChange = async (uniqueId: string, nextPokedexId: number, cost: number) => {
+      if (player.credits < cost) return;
+
+      const pokemon = player.inventory.find(p => p.uniqueId === uniqueId);
+      if (!pokemon) return;
+
+      const data = await fetchPokemonData(nextPokedexId);
+      if (!data) return;
+
+      let newMultiplier = calculateMultiplier(data.totalStats, pokemon.class);
+      if (pokemon.isShiny) newMultiplier *= 1.2;
+
+      setPlayer(prev => {
+          const inv = [...prev.inventory];
+          const idx = inv.findIndex(p => p.uniqueId === uniqueId);
+          if (idx === -1) return prev;
+
+          inv[idx] = {
+              ...inv[idx],
+              pokedexId: nextPokedexId,
+              name: data.name,
+              sprite: pokemon.isShiny ? data.shinySprite : data.sprite,
+              types: data.types,
+              totalStats: data.totalStats,
+              multiplier: newMultiplier
+          };
+
+          return {
+              ...prev,
+              credits: prev.credits - cost,
+              inventory: inv
+          };
+      });
+  };
+
+  const handleBuyPokemon = (pokemon: MarketPokemon, cost: number) => {
+      setPlayer(prev => ({
+          ...prev,
+          credits: prev.credits - cost,
+          inventory: [...prev.inventory, pokemon],
+          stats: {
+              ...prev.stats,
+              pokemonBought: prev.stats.pokemonBought + 1
+          }
+      }));
+      setMarketItems(prev => prev.filter(i => i.uniqueId !== pokemon.uniqueId));
+  };
+
+  const handleToggleEquip = (id: string) => {
+      setPlayer(prev => {
+          const isEquipped = prev.equippedPokemonIds.includes(id);
+          if (isEquipped) {
+              return { ...prev, equippedPokemonIds: prev.equippedPokemonIds.filter(eid => eid !== id) };
+          } else {
+              if (prev.equippedPokemonIds.length >= 6) return prev;
+              return { ...prev, equippedPokemonIds: [...prev.equippedPokemonIds, id] };
+          }
+      });
+  };
+
+  // Centralized Credit Update + Stats Tracking
+  const updateCredits = (amount: number) => {
+    setPlayer(prev => {
+        const newCredits = prev.credits + amount;
+        const newStats = { ...prev.stats };
+        
+        // Track Wins
+        if (amount > 0) {
+            newStats.highestWealth = Math.max(newStats.highestWealth, newCredits);
+            if (activeTab === 'roulette') newStats.totalWinsRoulette += 1;
+            if (activeTab === 'slots') newStats.totalWinsSlots += 1;
+        }
+
+        if (amount < 0 && activeTab === 'rocket') {
+            newStats.totalBetsRocket += 1;
+        }
+
+        return {
+           ...prev,
+           credits: newCredits,
+           stats: newStats
+        };
+    });
+  };
+
+  const equippedSquad = player.inventory.filter(p => player.equippedPokemonIds.includes(p.uniqueId));
+
+  const getCurrentBonus = (gameType: GameTab): number => {
+    const mapGameToBonusType = { 'roulette': 'roulette', 'rocket': 'rocket', 'slots': 'slot' };
+    // @ts-ignore
+    const requiredType = mapGameToBonusType[gameType];
+    if (!requiredType) return 0;
+
+    return equippedSquad.reduce((total, p) => {
+        return p.bonusType === requiredType ? total + p.multiplier : total;
+    }, 0);
+  };
+
+  if (!isLoaded) return <div className="min-h-screen bg-slate-900 flex items-center justify-center text-white">Loading...</div>;
+
+  if (player.inventory.length === 0) {
+    return <StarterSelection onSelect={handleStarterSelect} />;
+  }
+
+  return (
+    <div className="min-h-screen pb-12">
+      {/* Toast Notification */}
+      <div className={`fixed top-4 left-1/2 -translate-x-1/2 z-[100] transition-all duration-500 ${toast.visible ? 'translate-y-0 opacity-100' : '-translate-y-20 opacity-0'}`}>
+          <div className="bg-gradient-to-r from-yellow-500 to-amber-600 text-black font-bold px-6 py-3 rounded-full shadow-[0_0_20px_rgba(234,179,8,0.5)] flex items-center gap-2">
+              <span className="text-xl">🏆</span>
+              {toast.message}
+          </div>
+      </div>
+
+      <HelpModal isOpen={isHelpOpen} onClose={() => setIsHelpOpen(false)} />
+
+      <nav className="glass-panel sticky top-0 z-50 mb-8 border-b border-white/10">
+        <div className="max-w-6xl mx-auto px-4 py-4 flex justify-between items-center">
+          <div className="flex items-center gap-4">
+              <button 
+                onClick={() => setIsHelpOpen(true)}
+                className="w-8 h-8 rounded-full bg-slate-800 text-slate-400 border border-slate-600 font-bold hover:bg-white hover:text-black transition-colors"
+              >
+                  ?
+              </button>
+              <div className="font-display font-bold text-xl tracking-tighter text-transparent bg-clip-text bg-gradient-to-r from-violet-400 to-fuchsia-400">
+                POKÉCASINO
+              </div>
+          </div>
+          <div className="flex items-center gap-2 bg-slate-900/80 px-4 py-2 rounded-xl border border-slate-700 shadow-inner">
+            <span className="text-yellow-400 text-lg">🪙</span>
+            <span className="font-mono font-bold text-lg text-white">
+              {player.credits.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+            </span>
+          </div>
+        </div>
+      </nav>
+
+      <div className="max-w-6xl mx-auto px-4">
+        {equippedSquad.length > 0 && (
+            <SquadPanel 
+              squad={equippedSquad}
+              allInventory={player.inventory}
+              credits={player.credits}
+              onEvolve={handleEvolution}
+              onFuse={handleFusion}
+              onFormChange={handleFormChange}
+            />
+        )}
+
+        <div className="flex justify-center mb-8 gap-1 bg-slate-900/50 p-1 rounded-2xl max-w-2xl mx-auto overflow-x-auto">
+          {(['roulette', 'rocket', 'slots', 'market', 'collection', 'achievements'] as GameTab[]).map(tab => (
+            <button
+              key={tab}
+              onClick={() => setActiveTab(tab)}
+              className={`py-3 px-4 md:px-6 rounded-xl font-bold transition-all whitespace-nowrap ${
+                activeTab === tab 
+                  ? 'bg-violet-600 text-white shadow-lg' 
+                  : 'text-slate-400 hover:text-white hover:bg-white/5'
+              } capitalize`}
+            >
+              {tab}
+              {tab === 'achievements' && (
+                  <span className="ml-2 bg-slate-900 text-xs px-1.5 py-0.5 rounded-full text-slate-300">
+                      {player.completedAchievementIds.length}/{ACHIEVEMENTS.length}
+                  </span>
+              )}
+            </button>
+          ))}
+        </div>
+
+        {activeTab === 'market' ? (
+             <Marketplace 
+                credits={player.credits}
+                items={marketItems}
+                targetTime={marketTargetTime}
+                loading={marketLoading}
+                onBuy={handleBuyPokemon} 
+                onRefresh={handleMarketRefresh}
+             />
+        ) : activeTab === 'collection' ? (
+             <Collection 
+                inventory={player.inventory} 
+                equippedIds={player.equippedPokemonIds} 
+                onToggleEquip={handleToggleEquip} 
+             />
+        ) : activeTab === 'achievements' ? (
+             <Achievements player={player} />
+        ) : (
+            <div className="glass-panel rounded-3xl p-8 min-h-[400px] shadow-2xl border-t border-white/10 relative overflow-hidden">
+                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-violet-600/10 blur-[100px] rounded-full -z-10"></div>
+                
+                {activeTab === 'roulette' && (
+                    <Roulette 
+                    bonusMultiplier={getCurrentBonus('roulette')} 
+                    onEndGame={updateCredits} 
+                    credits={player.credits} 
+                    />
+                )}
+                {activeTab === 'rocket' && (
+                    <Rocket 
+                    bonusMultiplier={getCurrentBonus('rocket')} 
+                    onEndGame={updateCredits} 
+                    credits={player.credits} 
+                    />
+                )}
+                {activeTab === 'slots' && (
+                    <Slots 
+                    bonusMultiplier={getCurrentBonus('slots')} 
+                    onEndGame={updateCredits} 
+                    credits={player.credits} 
+                    />
+                )}
+
+                <div className="mt-8 text-center text-slate-500 text-sm">
+                   Active Squad Bonus: <span className="text-emerald-400 font-bold">+{ (getCurrentBonus(activeTab) * 100).toFixed(0) }%</span>
+                   <div className="text-xs text-slate-600 mt-1">Based on {equippedSquad.length} equipped Pokémon</div>
+                </div>
+            </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
+export default App;
