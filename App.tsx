@@ -209,10 +209,20 @@ const App: React.FC = () => {
 
     // KEY ITEM CHECK: Mega Evolution
     if (MEGA_EVOLUTION_MAP[pokemon.pokedexId]) {
+        // 1. Must have Bracelet
         if (!player.items.includes('mega_bracelet')) {
             setToast({ message: "You need a Mega Bracelet to Mega Evolve!", visible: true });
             setTimeout(() => setToast(t => ({ ...t, visible: false })), 3000);
             return;
+        }
+
+        // 2. Must hold specific Stone (if defined)
+        const requiredStone = ITEM_REQUIREMENTS[pokemon.pokedexId];
+        if (requiredStone && pokemon.heldItem !== requiredStone) {
+             const itemName = GAME_ITEMS.find(i => i.id === requiredStone)?.name || requiredStone;
+             setToast({ message: `Need to hold ${itemName} to Mega Evolve!`, visible: true });
+             setTimeout(() => setToast(t => ({ ...t, visible: false })), 3000);
+             return;
         }
     }
 

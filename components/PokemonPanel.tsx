@@ -57,8 +57,16 @@ export const SquadPanel: React.FC<SquadPanelProps> = ({ squad, allInventory, cre
               nextStageCost = 0; // Megas now rely on item ownership primarily, cost is negligible or zero if using stone
               evoLabel = 'MEGA EVOLVE';
               
-              // Check if player has Mega Bracelet
-              if (!playerItems.includes('mega_bracelet')) {
+              // Mega Requirement 1: Must hold the specific Mega Stone
+              const requiredStone = ITEM_REQUIREMENTS[pokemon.pokedexId];
+              if (requiredStone && pokemon.heldItem !== requiredStone) {
+                  missingItem = getItemName(requiredStone);
+              }
+              
+              // Mega Requirement 2: Must have Mega Bracelet (Key Item)
+              // Only check this if they have the stone, or show both if needed. 
+              // Priority to the Stone message first usually.
+              else if (!playerItems.includes('mega_bracelet')) {
                   missingItem = "Mega Bracelet";
               }
           } else {

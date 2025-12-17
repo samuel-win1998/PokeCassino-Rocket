@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { MarketPokemon, GameItem } from '../types';
 import { Button } from './ui/Button';
-import { CLASS_COLORS, CLASS_FIXED_MULTIPLIERS, GAME_ITEMS } from '../constants';
+import { CLASS_COLORS, CLASS_FIXED_MULTIPLIERS, GAME_ITEMS, ITEM_REQUIREMENTS } from '../constants';
 
 interface CollectionProps {
   inventory: MarketPokemon[];
@@ -45,8 +45,11 @@ export const Collection: React.FC<CollectionProps> = ({ inventory, equippedIds, 
       }
   };
 
-  // Resolve item details for Bag
-  const bagItems = playerItems.map(id => GAME_ITEMS.find(i => i.id === id)).filter(Boolean) as GameItem[];
+  // Resolve item details for Bag, excluding Key Items
+  const bagItems = playerItems
+    .map(id => GAME_ITEMS.find(i => i.id === id))
+    .filter((i): i is GameItem => !!i && i.category !== 'key_item');
+
   // Group items by count
   const groupedItems: { item: GameItem, count: number }[] = [];
   bagItems.forEach(item => {
@@ -77,7 +80,7 @@ export const Collection: React.FC<CollectionProps> = ({ inventory, equippedIds, 
                 onClick={() => { setActiveTab('items'); setSelectedItemToEquip(null); }}
                 className={`px-4 py-1.5 rounded-lg text-sm font-bold transition-all ${activeTab === 'items' ? 'bg-amber-600 text-white' : 'text-slate-400 hover:text-white'}`}
             >
-                Items ({playerItems.length})
+                Items ({bagItems.length})
             </button>
         </div>
         
@@ -102,7 +105,7 @@ export const Collection: React.FC<CollectionProps> = ({ inventory, equippedIds, 
       {activeTab === 'items' && (
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
               {groupedItems.length === 0 ? (
-                  <div className="col-span-full text-center py-12 text-slate-500 italic">No items in bag.</div>
+                  <div className="col-span-full text-center py-12 text-slate-500 italic">No valid held items in bag.</div>
               ) : (
                   groupedItems.map(({ item, count }) => {
                       const sellPrice = Math.floor(item.price * 0.75);
@@ -169,8 +172,20 @@ export const Collection: React.FC<CollectionProps> = ({ inventory, equippedIds, 
             
             const sellPrice = Math.floor((baseValue || 1000) * 0.75);
             
-            // Selection Mode Overrides
+            // Selection Mode Overrides (Equipping Item)
             if (selectedItemToEquip) {
+                // Compatibility Filter
+                // Find if the selected item is in ITEM_REQUIREMENTS
+                const compatiblePokedexIds = Object.entries(ITEM_REQUIREMENTS)
+                    .filter(([_, itemId]) => itemId === selectedItemToEquip)
+                    .map(([pokeId]) => parseInt(pokeId));
+
+                // If specific requirements exist, and this pokemon is NOT in the list, hide it
+                // If it's a generic item (not in map), we allow everyone to hold it (for now)
+                if (compatiblePokedexIds.length > 0 && !compatiblePokedexIds.includes(item.pokedexId)) {
+                    return null;
+                }
+
                 return (
                     <div 
                         key={item.uniqueId}
@@ -181,7 +196,7 @@ export const Collection: React.FC<CollectionProps> = ({ inventory, equippedIds, 
                              <img src={item.sprite} className="w-16 h-16" alt={item.name} />
                              <div>
                                  <h3 className="font-bold text-white">{item.name}</h3>
-                                 <span className="text-xs text-indigo-300">Click to Give Item</span>
+                                 <span className="text-xs text-indigo-300">Click to Give {GAME_ITEMS.find(i => i.id === selectedItemToEquip)?.name}</span>
                              </div>
                          </div>
                     </div>
@@ -264,6 +279,19 @@ export const Collection: React.FC<CollectionProps> = ({ inventory, equippedIds, 
                 </div>
             );
             })}
+            
+            {/* Show message if all pokemon were filtered out */}
+            {selectedItemToEquip && sortedInventory.filter(item => {
+                const compatiblePokedexIds = Object.entries(ITEM_REQUIREMENTS)
+                    .filter(([_, itemId]) => itemId === selectedItemToEquip)
+                    .map(([pokeId]) => parseInt(pokeId));
+                return compatiblePokedexIds.length === 0 || compatiblePokedexIds.includes(item.pokedexId);
+            }).length === 0 && (
+                <div className="col-span-full text-center py-20 bg-slate-800/50 rounded-xl border border-white/5">
+                    <p className="text-slate-400 mb-2">No compatible Pokémon found for this item.</p>
+                    <Button variant="secondary" onClick={() => setSelectedItemToEquip(null)}>Cancel</Button>
+                </div>
+            )}
         </div>
       )}
     </div>
