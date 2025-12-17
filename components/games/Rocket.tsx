@@ -14,15 +14,34 @@ export const Rocket: React.FC<RocketProps> = ({ bonusMultiplier, onEndGame, cred
   const [multiplier, setMultiplier] = useState(1.00);
   const [message, setMessage] = useState('');
   
-  // Refs for loop management to avoid closure staleness
+  // Container dimensions for SVG line calculation
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
+
+  // Refs for loop management
   const reqRef = useRef<number>(0);
   const startTimeRef = useRef<number>(0);
   const crashPointRef = useRef<number>(0);
   const stateRef = useRef<{ isPlaying: boolean, multiplier: number }>({ isPlaying: false, multiplier: 1.0 });
 
   useEffect(() => {
+    const updateDimensions = () => {
+        if (containerRef.current) {
+            setDimensions({
+                width: containerRef.current.offsetWidth,
+                height: containerRef.current.offsetHeight
+            });
+        }
+    };
+
+    updateDimensions();
+    // Small delay to ensure layout is stable
+    setTimeout(updateDimensions, 100);
+
+    window.addEventListener('resize', updateDimensions);
     return () => {
-      if (reqRef.current) cancelAnimationFrame(reqRef.current);
+        window.removeEventListener('resize', updateDimensions);
+        if (reqRef.current) cancelAnimationFrame(reqRef.current);
     };
   }, []);
 
@@ -54,8 +73,8 @@ export const Rocket: React.FC<RocketProps> = ({ bonusMultiplier, onEndGame, cred
     const now = performance.now();
     const elapsed = (now - startTimeRef.current) / 1000; // seconds
     
-    // Exponential growth curve
-    const currentMult = 1 + (0.3 * elapsed) + (0.05 * Math.pow(elapsed, 2));
+    // Slow Burn Growth Curve
+    const currentMult = 1 + (0.1 * elapsed) + (0.01 * Math.pow(elapsed, 2.5));
     
     if (currentMult >= crashPointRef.current) {
       handleCrash(crashPointRef.current);
@@ -71,7 +90,7 @@ export const Rocket: React.FC<RocketProps> = ({ bonusMultiplier, onEndGame, cred
     setIsPlaying(false);
     setMultiplier(finalVal);
     stateRef.current.isPlaying = false;
-    setMessage(`💥 Crashed at ${finalVal.toFixed(2)}x`);
+    setMessage(`Crashed at ${finalVal.toFixed(2)}x`);
   };
 
   const cashOut = () => {
@@ -84,52 +103,101 @@ export const Rocket: React.FC<RocketProps> = ({ bonusMultiplier, onEndGame, cred
     stateRef.current.isPlaying = false;
     
     // Correct Formula: Total Payout = (Bet * Multiplier) * (1 + Bonus%)
-    // Example: Bet 100, out at 2x. Base Payout = 200. Bonus 10% = 20. Total = 220.
     const basePayout = bet * currentMult;
     const totalPayout = basePayout * (1 + bonusMultiplier);
     
     onEndGame(totalPayout); // Return total payout
     
-    setMessage(`🚀 Cashed out at ${currentMult.toFixed(2)}x! (+${totalPayout.toFixed(0)})`);
+    setMessage(`Cashed out at ${currentMult.toFixed(2)}x! (+${totalPayout.toFixed(0)})`);
   };
 
-  // Calculate rocket position based on multiplier for visual
-  const rocketBottom = Math.min(80, (multiplier - 1) * 20);
-  const rocketLeft = Math.min(80, (multiplier - 1) * 15);
+  // Rocket Position Logic
+  const animationStep = Math.min(100, (multiplier - 1) * 25);
+  
+  // Clamping (ensure we don't go off screen regardless of size)
+  // Padding: 40px (left/bottom) + 48px (rocket size) + buffer
+  const safeWidth = Math.max(100, dimensions.width - 120);
+  const safeHeight = Math.max(100, dimensions.height - 120);
+  
+  // Trajectory: 4x, 3y (Diagonal ~37 degrees)
+  const rawX = animationStep * 4;
+  const rawY = animationStep * 3;
+
+  const currentX = Math.min(safeWidth, rawX);
+  const currentY = Math.min(safeHeight, rawY);
+
+  // Line Coordinates
+  // CSS Position: bottom-10 (40px) left-10 (40px).
+  // Rocket Size: text-5xl (~48px). Center is ~24px offset.
+  // We want the line to start from the "Launchpad" center
+  const launchPadX = 40 + 24; 
+  const launchPadY = dimensions.height - (40 + 24);
+
+  // End Point: Rocket Tail.
+  // Rocket Center Position relative to SVG origin (0,0 top-left)
+  // X = launchPadX + currentX
+  // Y = launchPadY - currentY
+  const rocketCx = launchPadX + currentX;
+  const rocketCy = launchPadY - currentY;
+
+  // Offset to find the "Tail" of the emoji (Bottom-Left of the emoji box)
+  // Emoji is naturally diagonal, so tail is roughly -12px X and +12px Y (down-left) from center
+  const tailX = rocketCx - 15;
+  const tailY = rocketCy + 15;
+
+  const startLineX = launchPadX - 15;
+  const startLineY = launchPadY + 15;
+
+  // Determine if we are in the "Result" state (Crashed or Cashed Out)
+  const isResultState = !isPlaying && multiplier > 1.0;
 
   return (
     <div className="flex flex-col items-center max-w-lg mx-auto">
-      <div className="w-full aspect-video bg-slate-900 rounded-2xl border-2 border-slate-700 relative overflow-hidden mb-6 shadow-inner">
-        {/* Grid lines */}
-        <div className="absolute inset-0 opacity-10" 
-             style={{ backgroundImage: 'linear-gradient(#fff 1px, transparent 1px), linear-gradient(90deg, #fff 1px, transparent 1px)', backgroundSize: '20px 20px' }}>
-        </div>
+      <div 
+        ref={containerRef}
+        className="w-full aspect-video bg-slate-900 rounded-2xl border-2 border-slate-700 relative overflow-hidden mb-6 shadow-inner"
+      >
+        {/* SVG Line Trail */}
+        <svg className="absolute inset-0 w-full h-full pointer-events-none z-10">
+            {dimensions.width > 0 && (
+                <path 
+                    d={`M ${startLineX} ${startLineY} L ${tailX} ${tailY}`} 
+                    stroke="#22c55e" 
+                    strokeWidth="4" 
+                    fill="none"
+                    strokeLinecap="round"
+                    className={`transition-opacity duration-1000 ${isResultState ? 'opacity-0' : 'opacity-80'}`}
+                />
+            )}
+        </svg>
 
         {/* Multiplier Display */}
-        <div className={`absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-5xl font-black font-display z-10 ${crashed ? 'text-red-500' : 'text-white'}`}>
+        <div className={`absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-6xl font-black font-display z-10 transition-transform duration-300 ${crashed ? 'text-red-500 scale-125' : 'text-white'}`}>
           {multiplier.toFixed(2)}x
         </div>
 
         {/* Rocket Icon */}
-        {!crashed && (
-          <div 
-            className="absolute text-4xl transition-transform duration-75"
-            style={{ bottom: `${10 + rocketBottom}%`, left: `${10 + rocketLeft}%`, transform: 'rotate(45deg)' }}
-          >
-            🚀
+        <div 
+          className={`absolute bottom-10 left-10 text-5xl z-20 will-change-transform
+            ${isPlaying ? 'transition-transform duration-75 ease-linear' : 'transition-all duration-700 ease-in-out'}
+          `}
+          style={{ 
+              transformOrigin: 'center center',
+              // Apply rotation ONLY when finished (isResultState)
+              transform: isResultState
+                 ? `translate(${currentX}px, ${-currentY}px) rotate(720deg) scale(0)`
+                 : `translate(${currentX}px, ${-currentY}px)`,
+              opacity: isResultState ? 0 : 1
+          }}
+        >
+          <div className="relative">
+              🚀
           </div>
-        )}
-
-        {/* Explosion */}
-        {crashed && (
-           <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-6xl animate-pulse">
-             💥
-           </div>
-        )}
+        </div>
       </div>
 
       {message && (
-        <div className={`mb-4 font-bold text-lg ${crashed ? 'text-red-400' : 'text-emerald-400'}`}>
+        <div className={`mb-4 font-bold text-lg ${crashed ? 'text-red-400' : 'text-emerald-400'} animate-bounce-subtle`}>
           {message}
         </div>
       )}

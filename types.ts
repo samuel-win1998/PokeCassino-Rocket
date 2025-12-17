@@ -21,6 +21,30 @@ export interface MarketPokemon {
   totalStats: number;
   isStarter?: boolean; 
   isShiny?: boolean;
+  heldItem?: string; // ID of the GameItem currently held
+}
+
+export interface GameItem {
+    id: string;
+    name: string;
+    price: number;
+    description: string;
+    sprite: string; // URL or emoji
+    category: 'mega_stone' | 'orb' | 'held_item' | 'key_item';
+}
+
+export interface GymLeader {
+  id: string;
+  name: string;
+  city: string;
+  type: PokemonType;
+  badge: string;
+  badgeSprite: string;
+  difficultyRating: number;
+  rewardCredits: number;
+  description: string;
+  leaderSprite: string;
+  acePokemonId: number;
 }
 
 export interface PlayerStats {
@@ -35,6 +59,8 @@ export interface PlayerState {
   credits: number;
   inventory: MarketPokemon[];
   equippedPokemonIds: string[]; // Supports up to 6
+  items: string[]; // IDs of purchased GameItems (Unequipped)
+  badges: string[]; // Names of badges collected
   starterEvolutionStage: number;
   stats: PlayerStats;
   completedAchievementIds: string[];
@@ -46,7 +72,7 @@ export interface Achievement {
   title: string;
   description: string;
   reward: number;
-  category: 'wealth' | 'collection' | 'game' | 'type';
+  category: 'wealth' | 'collection' | 'game' | 'type' | 'shiny' | 'item';
   condition: (player: PlayerState) => boolean;
   progress: (player: PlayerState) => { current: number; max: number };
 }

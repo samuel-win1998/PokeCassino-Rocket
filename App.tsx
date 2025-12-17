@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { PlayerState, GameTab, MarketPokemon, MarketFilter, Achievement } from './types';
+import { PlayerState, GameTab, MarketPokemon, MarketFilter, Achievement, GameItem } from './types';
 import { POKEMON_DATA, ACHIEVEMENTS, CLASS_FIXED_MULTIPLIERS } from './constants';
 import { generateStarterClass, generateMarketBatch, fetchPokemonData, calculateMultiplier, getNextEvolution, calculateRefreshCost } from './utils/marketGenerator';
 import { StarterSelection } from './components/StarterSelection';
@@ -19,6 +19,8 @@ const App: React.FC = () => {
     credits: 1000,
     inventory: [],
     equippedPokemonIds: [], 
+    items: [], // New Items array
+    badges: [],
     starterEvolutionStage: 0,
     stats: {
         totalWinsRoulette: 0,
@@ -68,15 +70,13 @@ const App: React.FC = () => {
           credits: parsed.credits || 1000,
           inventory: sanitizedInventory,
           equippedPokemonIds: parsed.equippedPokemonIds || [],
+          items: parsed.items || [], // Migration for old saves
+          badges: parsed.badges || [],
           starterEvolutionStage: parsed.starterEvolutionStage || 0,
           stats: parsed.stats || { 
              totalWinsRoulette: 0, totalWinsSlots: 0, totalBetsRocket: 0, pokemonBought: 0, highestWealth: 1000 
           },
           completedAchievementIds: parsed.completedAchievementIds || [],
-          // Migration: if hasPickedStarter is undefined, assume true if they have/had inventory logic, 
-          // but strictly checking if the save existed is usually enough. 
-          // If inventory > 0, they definitely started. If inventory is 0 on old save, we assume they started 
-          // to avoid reset if we just added this feature.
           hasPickedStarter: parsed.hasPickedStarter ?? true 
         });
       } catch (e) {
@@ -134,7 +134,7 @@ const App: React.FC = () => {
   useEffect(() => {
       if (!isLoaded) return;
       checkAchievements(player);
-  }, [player.credits, player.stats, player.inventory, isLoaded, checkAchievements]);
+  }, [player.credits, player.stats, player.inventory, player.items, isLoaded, checkAchievements]);
 
   // --- Handlers ---
 
@@ -193,6 +193,8 @@ const App: React.FC = () => {
       credits: 1000, 
       inventory: [starterPokemon],
       equippedPokemonIds: [starterPokemon.uniqueId],
+      items: [],
+      badges: [],
       stats: { ...player.stats, pokemonBought: 0, highestWealth: 1000 },
       completedAchievementIds: [],
       hasPickedStarter: true
@@ -342,6 +344,20 @@ const App: React.FC = () => {
       setMarketItems(prev => prev.filter(i => i.uniqueId !== pokemon.uniqueId));
   };
 
+  const handleBuyItem = (item: GameItem) => {
+      if (player.credits < item.price) return;
+      // Allow multiple of same item if needed, but for Mega Stones usually 1 is enough. 
+      // Current system items are strings in array, so multiples allowed.
+      
+      setPlayer(prev => ({
+          ...prev,
+          credits: prev.credits - item.price,
+          items: [...prev.items, item.id]
+      }));
+      setToast({ message: `Bought ${item.name}!`, visible: true });
+      setTimeout(() => setToast(t => ({ ...t, visible: false })), 3000);
+  };
+
   const handleSellPokemon = (id: string, price: number) => {
       // Robust selling logic
       setPlayer(prev => {
@@ -375,6 +391,66 @@ const App: React.FC = () => {
               return { ...prev, equippedPokemonIds: [...prev.equippedPokemonIds, id] };
           }
       });
+  };
+
+  const handleGiveItem = (itemId: string, pokemonId: string) => {
+      setPlayer(prev => {
+          const pokemonIndex = prev.inventory.findIndex(p => p.uniqueId === pokemonId);
+          if (pokemonIndex === -1) return prev;
+
+          const itemIndex = prev.items.findIndex(i => i === itemId);
+          if (itemIndex === -1) return prev;
+
+          const newInventory = [...prev.inventory];
+          const targetPokemon = { ...newInventory[pokemonIndex] };
+          const newItems = [...prev.items];
+
+          // If pokemon already holds item, return it to bag
+          if (targetPokemon.heldItem) {
+              newItems.push(targetPokemon.heldItem);
+          }
+
+          // Assign new item
+          targetPokemon.heldItem = itemId;
+          
+          // Remove from bag (one instance)
+          newItems.splice(itemIndex, 1);
+
+          newInventory[pokemonIndex] = targetPokemon;
+
+          return {
+              ...prev,
+              inventory: newInventory,
+              items: newItems
+          };
+      });
+      setToast({ message: `Equipped item!`, visible: true });
+      setTimeout(() => setToast(t => ({ ...t, visible: false })), 2000);
+  };
+
+  const handleTakeItem = (pokemonId: string) => {
+      setPlayer(prev => {
+          const pokemonIndex = prev.inventory.findIndex(p => p.uniqueId === pokemonId);
+          if (pokemonIndex === -1) return prev;
+          
+          const newInventory = [...prev.inventory];
+          const targetPokemon = { ...newInventory[pokemonIndex] };
+          
+          if (!targetPokemon.heldItem) return prev;
+
+          const itemToReturn = targetPokemon.heldItem;
+          targetPokemon.heldItem = undefined;
+          
+          newInventory[pokemonIndex] = targetPokemon;
+
+          return {
+              ...prev,
+              inventory: newInventory,
+              items: [...prev.items, itemToReturn]
+          };
+      });
+      setToast({ message: `Unequipped item!`, visible: true });
+      setTimeout(() => setToast(t => ({ ...t, visible: false })), 2000);
   };
 
   // Centralized Credit Update + Stats Tracking
@@ -474,6 +550,7 @@ const App: React.FC = () => {
               onEvolve={handleEvolution}
               onFuse={handleFusion}
               onFormChange={handleFormChange}
+              onTakeItem={handleTakeItem}
             />
         )}
 
@@ -515,13 +592,21 @@ const App: React.FC = () => {
                 setFilter={setMarketFilter}
                 showFilters={showMarketFilters}
                 setShowFilters={setShowMarketFilters}
+                ownedItemIds={player.items} // Show as owned ONLY if in bag (so they can buy duplicates if needed, or check logic in Marketplace)
+                // Actually Marketplace check logic usually hides owned unique items, but here items are strings.
+                // Pass items in bag + items held to be safe if items should be unique globally? 
+                // Market logic uses this array to HIDE items. If we want unique items globally:
+                // ownedItemIds={[...player.items, ...player.inventory.map(p => p.heldItem).filter(Boolean) as string[]]}
+                onBuyItem={handleBuyItem}
              />
         ) : activeTab === 'collection' ? (
              <Collection 
                 inventory={player.inventory} 
                 equippedIds={player.equippedPokemonIds} 
+                playerItems={player.items}
                 onToggleEquip={handleToggleEquip}
                 onSell={handleSellPokemon}
+                onGiveItem={handleGiveItem}
              />
         ) : activeTab === 'achievements' ? (
              <Achievements player={player} />

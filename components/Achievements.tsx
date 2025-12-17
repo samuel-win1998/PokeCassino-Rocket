@@ -7,33 +7,24 @@ interface AchievementsProps {
 }
 
 export const Achievements: React.FC<AchievementsProps> = ({ player }) => {
-    const [filter, setFilter] = useState<'ALL' | 'wealth' | 'collection' | 'game' | 'type'>('ALL');
+    const [filter, setFilter] = useState<'All' | Achievement['category']>('All');
 
     const sortedAchievements = useMemo(() => {
         let list = ACHIEVEMENTS;
-        if (filter !== 'ALL') {
+        if (filter !== 'All') {
             list = list.filter(a => a.category === filter);
         }
 
-        // Sort: Unlocked first, then by completion %
+        // Sort alphabetically by title
         return list.sort((a, b) => {
-            const isCompletedA = player.completedAchievementIds.includes(a.id);
-            const isCompletedB = player.completedAchievementIds.includes(b.id);
-            if (isCompletedA && !isCompletedB) return -1;
-            if (!isCompletedA && isCompletedB) return 1;
-
-            const progressA = a.progress(player);
-            const percentA = Math.min(100, (progressA.current / progressA.max) * 100);
-            
-            const progressB = b.progress(player);
-            const percentB = Math.min(100, (progressB.current / progressB.max) * 100);
-
-            return percentB - percentA;
+            return a.title.localeCompare(b.title);
         });
     }, [player, filter]);
 
     const completedCount = player.completedAchievementIds.length;
     const totalCount = ACHIEVEMENTS.length;
+
+    const categories: ('All' | Achievement['category'])[] = ['All', 'wealth', 'game', 'collection', 'type', 'shiny', 'item'];
 
     return (
         <div className="flex flex-col gap-6">
@@ -51,7 +42,7 @@ export const Achievements: React.FC<AchievementsProps> = ({ player }) => {
             </div>
 
             <div className="flex gap-2 overflow-x-auto pb-2">
-                {(['ALL', 'wealth', 'game', 'collection', 'type'] as const).map(cat => (
+                {categories.map(cat => (
                     <button
                         key={cat}
                         onClick={() => setFilter(cat)}

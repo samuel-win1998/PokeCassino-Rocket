@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { MarketPokemon } from '../types';
 import { Button } from './ui/Button';
-import { CLASS_COLORS, MEGA_EVOLUTION_MAP, FUSION_PAIRS, FORM_CHAINS } from '../constants';
+import { CLASS_COLORS, MEGA_EVOLUTION_MAP, FUSION_PAIRS, FORM_CHAINS, ITEM_REQUIREMENTS, GAME_ITEMS, TYPE_COLORS } from '../constants';
 import { getNextEvolution } from '../utils/marketGenerator';
 
 interface SquadPanelProps {
@@ -11,9 +11,10 @@ interface SquadPanelProps {
   onEvolve: (uniqueId: string, cost: number) => void;
   onFuse: (baseId: string, partnerId: string, resultPokedexId: number, cost: number) => void;
   onFormChange: (uniqueId: string, nextPokedexId: number, cost: number) => void;
+  onTakeItem?: (pokemonId: string) => void;
 }
 
-export const SquadPanel: React.FC<SquadPanelProps> = ({ squad, allInventory, credits, onEvolve, onFuse, onFormChange }) => {
+export const SquadPanel: React.FC<SquadPanelProps> = ({ squad, allInventory, credits, onEvolve, onFuse, onFormChange, onTakeItem }) => {
   const [canEvolveMap, setCanEvolveMap] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
@@ -22,11 +23,6 @@ export const SquadPanel: React.FC<SquadPanelProps> = ({ squad, allInventory, cre
         const newMap: Record<string, boolean> = {};
         
         for (const p of squad) {
-            // Optimization: if we already checked this ID, skip (unless it evolved, but ID changes or persists? UniqueId persists)
-            // But if it evolved, PokedexID changed, so checking again is fine.
-            
-            // If it's a mega or special form, regular evolution logic might fail or be irrelevant, handled below.
-            // But for standard "Evolve" button, we need to know if next exists.
             if (!MEGA_EVOLUTION_MAP[p.pokedexId] && !FORM_CHAINS[p.pokedexId] && !FUSION_PAIRS[p.pokedexId]) {
                 const next = await getNextEvolution(p.pokedexId);
                 newMap[p.uniqueId] = !!next;
@@ -37,6 +33,8 @@ export const SquadPanel: React.FC<SquadPanelProps> = ({ squad, allInventory, cre
 
     checkEvolutions();
   }, [squad]);
+
+  const getItemName = (id: string) => GAME_ITEMS.find(i => i.id === id)?.name || id;
 
   return (
     <div className="mb-8">
@@ -50,11 +48,15 @@ export const SquadPanel: React.FC<SquadPanelProps> = ({ squad, allInventory, cre
           let nextStageCost = 5000;
           let evoLabel = 'Evolve';
           let isMega = false;
+          let missingItem = '';
+
+          // Check if item required for regular/mega
+          const reqItem = ITEM_REQUIREMENTS[pokemon.pokedexId];
 
           // Check for Mega
           if (MEGA_EVOLUTION_MAP[pokemon.pokedexId]) {
               isMega = true;
-              nextStageCost = 50000;
+              nextStageCost = 0; // Megas now rely on item ownership primarily, cost is negligible or zero if using stone
               evoLabel = 'MEGA EVOLVE';
           }
 
@@ -78,7 +80,12 @@ export const SquadPanel: React.FC<SquadPanelProps> = ({ squad, allInventory, cre
 
           // 3. Check Form Changes (Linear, One-Way)
           const nextFormId = FORM_CHAINS[pokemon.pokedexId];
-          const formChangeCost = 25000;
+          const formChangeCost = 0; // Form changes usually item based now
+
+          // Determine missing items. Logic: The POKEMON must hold the item.
+          if (reqItem && pokemon.heldItem !== reqItem) {
+              missingItem = getItemName(reqItem);
+          }
 
           // Determine if we show standard evolve button
           // Show if: Is Mega OR (Not Mega/Form/Fusion AND API says can evolve)
@@ -89,7 +96,7 @@ export const SquadPanel: React.FC<SquadPanelProps> = ({ squad, allInventory, cre
                {/* Background Glow */}
                <div className={`absolute -right-10 -bottom-10 w-32 h-32 bg-gradient-to-br ${pokemon.isShiny ? 'from-yellow-400/20' : 'from-white/10'} to-transparent blur-2xl rounded-full pointer-events-none`} />
 
-               <div className="relative shrink-0">
+               <div className="relative shrink-0 group/img">
                   <div className={`w-20 h-20 rounded-full border-2 ${pokemon.isShiny ? 'border-yellow-400' : 'border-white/10'} bg-black/40 flex items-center justify-center p-1`}>
                      <img src={pokemon.sprite} alt={pokemon.name} className="w-full h-full object-contain" />
                   </div>
@@ -99,14 +106,35 @@ export const SquadPanel: React.FC<SquadPanelProps> = ({ squad, allInventory, cre
                </div>
 
                <div className="flex-1 min-w-0 flex flex-col gap-2">
-                  <div>
-                    <div className="flex items-center gap-2">
-                        <h3 className={`font-bold truncate ${pokemon.isShiny ? 'text-yellow-400' : 'text-white'}`}>{pokemon.name}</h3>
-                        {pokemon.isShiny && <span className="text-xs">✨</span>}
+                  <div className="flex justify-between items-start">
+                    <div>
+                        <div className="flex items-center gap-2">
+                            <h3 className={`font-bold truncate ${pokemon.isShiny ? 'text-yellow-400' : 'text-white'}`}>{pokemon.name}</h3>
+                            {pokemon.isShiny && <span className="text-xs">✨</span>}
+                        </div>
+                        {/* Types */}
+                        <div className="flex gap-1 mt-1">
+                            {pokemon.types.map(t => (
+                                <div key={t} className={`w-2.5 h-2.5 rounded-full ${TYPE_COLORS[t]} shadow-sm`} title={t}></div>
+                            ))}
+                            <span className="text-[10px] text-slate-400 ml-1">BST: {pokemon.totalStats}</span>
+                        </div>
                     </div>
-                    <div className="text-xs text-emerald-400 font-bold mb-1">
-                        +{(pokemon.multiplier * 100).toFixed(0)}% {pokemon.bonusType}
-                    </div>
+                    {/* Held Item */}
+                    {pokemon.heldItem && (
+                        <button 
+                            onClick={() => onTakeItem && onTakeItem(pokemon.uniqueId)}
+                            className="w-8 h-8 bg-black/50 rounded-lg border border-slate-600 hover:border-red-500 hover:bg-red-900/30 transition-colors flex items-center justify-center p-1 relative group"
+                            title={`Held: ${getItemName(pokemon.heldItem)}. Click to remove.`}
+                        >
+                            <img src={GAME_ITEMS.find(i => i.id === pokemon.heldItem)?.sprite} className="w-full h-full object-contain" />
+                            <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 text-red-500 font-bold text-lg">×</div>
+                        </button>
+                    )}
+                  </div>
+                  
+                  <div className="text-xs text-emerald-400 font-bold mb-1">
+                      +{(pokemon.multiplier * 100).toFixed(0)}% {pokemon.bonusType}
                   </div>
                   
                   {/* Action Buttons */}
@@ -123,20 +151,20 @@ export const SquadPanel: React.FC<SquadPanelProps> = ({ squad, allInventory, cre
                       ) : nextFormId ? (
                           <Button 
                              variant="secondary"
-                             disabled={credits < formChangeCost}
+                             disabled={!!missingItem}
                              onClick={() => onFormChange(pokemon.uniqueId, nextFormId, formChangeCost)}
                              className="py-1 px-3 text-xs w-full border border-green-500/50"
                           >
-                             Change Form ${formChangeCost.toLocaleString()}
+                             {missingItem ? `Give ${missingItem}` : 'Change Form'}
                           </Button>
                       ) : showEvolve ? (
                           <Button 
                             variant={isMega ? 'primary' : 'success'} 
-                            disabled={credits < nextStageCost}
+                            disabled={credits < nextStageCost || !!missingItem}
                             onClick={() => onEvolve(pokemon.uniqueId, nextStageCost)}
                             className="py-1 px-3 text-xs w-full"
                           >
-                            {evoLabel} ${nextStageCost.toLocaleString()}
+                             {missingItem ? `Give ${missingItem}` : `${evoLabel} ${nextStageCost > 0 ? `$${nextStageCost.toLocaleString()}` : ''}`}
                           </Button>
                       ) : (
                           <div className="text-center">

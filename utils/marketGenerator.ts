@@ -168,20 +168,24 @@ export const generateMarketBatch = async (count: number, filter?: MarketFilter):
   const effectiveFilter = filter || { targetClass: 'ALL', targetBonus: 'ALL', targetGen: 'ALL', targetType: [], targetGroup: 'ALL' };
   
   const idPool = await getValidIdPool(effectiveFilter);
-  const shuffledPool = idPool.sort(() => 0.5 - Math.random());
   
+  if (idPool.length === 0) return [];
+
   const batch: MarketPokemon[] = [];
   let attempts = 0;
-  const maxAttempts = 50; 
+  // Safety break to prevent infinite loops if API fails repeatedly
+  const maxAttempts = count * 5; 
 
-  for (const id of shuffledPool) {
-      if (batch.length >= count) break;
+  // Fill the batch up to 'count' (allowing duplicates if pool is small)
+  while (batch.length < count) {
       if (attempts >= maxAttempts) break;
+      attempts++;
+
+      // Pick a random ID from the pool (can repeat)
+      const id = idPool[Math.floor(Math.random() * idPool.length)];
 
       const data = await fetchPokemonData(id);
       if (!data) continue;
-
-      attempts++;
 
       // Strict Type Check (OR logic: if pokemon has ANY of the target types)
       if (effectiveFilter.targetType.length > 0) {

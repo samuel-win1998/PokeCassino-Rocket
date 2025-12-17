@@ -1,4 +1,4 @@
-import { PokemonClass, PokemonType, BonusType, Achievement } from './types';
+import { PokemonClass, PokemonType, BonusType, Achievement, GameItem, GymLeader } from './types';
 
 // New Fixed Multipliers
 export const CLASS_FIXED_MULTIPLIERS: Record<PokemonClass, number> = {
@@ -43,6 +43,29 @@ export const TYPE_COLORS: Record<PokemonType, string> = {
     fairy: 'bg-pink-300',
 };
 
+// Simple Type Advantage Chart (Attacker -> Defender: Multiplier)
+// Only including Super Effective (2x) for simplicity in auto-battler
+export const TYPE_CHART: Record<PokemonType, PokemonType[]> = {
+    normal: [],
+    fire: ['grass', 'ice', 'bug', 'steel'],
+    water: ['fire', 'ground', 'rock'],
+    grass: ['water', 'ground', 'rock'],
+    electric: ['water', 'flying'],
+    ice: ['grass', 'ground', 'flying', 'dragon'],
+    fighting: ['normal', 'ice', 'rock', 'dark', 'steel'],
+    poison: ['grass', 'fairy'],
+    ground: ['fire', 'electric', 'poison', 'rock', 'steel'],
+    flying: ['grass', 'fighting', 'bug'],
+    psychic: ['fighting', 'poison'],
+    bug: ['grass', 'psychic', 'dark'],
+    rock: ['fire', 'ice', 'flying', 'bug'],
+    ghost: ['psychic', 'ghost'],
+    dragon: ['dragon'],
+    steel: ['ice', 'rock', 'fairy'],
+    dark: ['psychic', 'ghost'],
+    fairy: ['fighting', 'dragon', 'dark']
+};
+
 // Hardcoded lists for groups that are hard to filter via simple API flags
 export const STARTER_IDS = [
     1, 4, 7, // Gen 1
@@ -60,7 +83,7 @@ export const PSEUDO_LEGENDARY_IDS = [
     147, 148, 149, // Dragonite line
     246, 247, 248, // Tyranitar line
     371, 372, 373, // Salamence line
-    374, 375, 376, // Metagross line
+    374, 375, 376, // Metagross line (Fixed/Confirmed)
     443, 444, 445, // Garchomp line
     633, 634, 635, // Hydreigon line
     704, 705, 706, // Goodra line
@@ -135,6 +158,150 @@ export const POKEMON_DATA: Record<string, { base: { apiName: string, name: strin
     }
 };
 
+const getSprite = (name: string) => `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/${name}.png`;
+
+// --- GAME ITEMS MARKET (SORTED ALPHABETICALLY) ---
+// Using custom images for broken official sprites (Rusted items, Z-crystals)
+export const GAME_ITEMS: GameItem[] = [
+    { id: 'abomasite', name: 'Abomasite', price: 30000, description: 'Mega Evolve Abomasnow.', category: 'mega_stone', sprite: getSprite('abomasite') },
+    { id: 'absolite', name: 'Absolite', price: 30000, description: 'Mega Evolve Absol.', category: 'mega_stone', sprite: getSprite('absolite') },
+    { id: 'adamant_crystal', name: 'Adamant Crystal', price: 120000, description: 'Allows Dialga to enter Origin Forme.', category: 'orb', sprite: getSprite('adamant-orb') },
+    { id: 'aerodactylite', name: 'Aerodactylite', price: 35000, description: 'Mega Evolve Aerodactyl.', category: 'mega_stone', sprite: getSprite('aerodactylite') },
+    { id: 'aggronite', name: 'Aggronite', price: 35000, description: 'Mega Evolve Aggron.', category: 'mega_stone', sprite: getSprite('aggronite') },
+    { id: 'alakazite', name: 'Alakazite', price: 35000, description: 'Mega Evolve Alakazam.', category: 'mega_stone', sprite: getSprite('alakazite') },
+    { id: 'altarianite', name: 'Altarianite', price: 30000, description: 'Mega Evolve Altaria.', category: 'mega_stone', sprite: getSprite('altarianite') },
+    { id: 'ampharosite', name: 'Ampharosite', price: 30000, description: 'Mega Evolve Ampharos.', category: 'mega_stone', sprite: getSprite('ampharosite') },
+    { id: 'audinite', name: 'Audinite', price: 25000, description: 'Mega Evolve Audino.', category: 'mega_stone', sprite: getSprite('audinite') },
+    { id: 'banettite', name: 'Banettite', price: 30000, description: 'Mega Evolve Banette.', category: 'mega_stone', sprite: getSprite('banettite') },
+    { id: 'beedrillite', name: 'Beedrillite', price: 25000, description: 'Mega Evolve Beedrill.', category: 'mega_stone', sprite: getSprite('beedrillite') },
+    { id: 'blastoisinite', name: 'Blastoisinite', price: 50000, description: 'Mega Evolve Blastoise.', category: 'mega_stone', sprite: getSprite('blastoisinite') },
+    { id: 'blazikenite', name: 'Blazikenite', price: 50000, description: 'Mega Evolve Blaziken.', category: 'mega_stone', sprite: getSprite('blazikenite') },
+    { id: 'blue_orb', name: 'Blue Orb', price: 100000, description: 'Triggers Primal Reversion for Kyogre.', category: 'orb', sprite: getSprite('blue-orb') },
+    { id: 'cameruptite', name: 'Cameruptite', price: 30000, description: 'Mega Evolve Camerupt.', category: 'mega_stone', sprite: getSprite('cameruptite') },
+    { id: 'charizardite_x', name: 'Charizardite X', price: 50000, description: 'Mega Evolve Charizard X.', category: 'mega_stone', sprite: getSprite('charizardite-x') },
+    { id: 'charizardite_y', name: 'Charizardite Y', price: 50000, description: 'Mega Evolve Charizard Y.', category: 'mega_stone', sprite: getSprite('charizardite-y') },
+    { id: 'diancite', name: 'Diancite', price: 60000, description: 'Mega Evolve Diancie.', category: 'mega_stone', sprite: getSprite('diancite') },
+    { id: 'galladite', name: 'Galladite', price: 40000, description: 'Mega Evolve Gallade.', category: 'mega_stone', sprite: getSprite('galladite') },
+    { id: 'garchompite', name: 'Garchompite', price: 55000, description: 'Mega Evolve Garchomp.', category: 'mega_stone', sprite: getSprite('garchompite') },
+    { id: 'gardevoirite', name: 'Gardevoirite', price: 40000, description: 'Mega Evolve Gardevoir.', category: 'mega_stone', sprite: getSprite('gardevoirite') },
+    { id: 'gengarite', name: 'Gengarite', price: 40000, description: 'Mega Evolve Gengar.', category: 'mega_stone', sprite: getSprite('gengarite') },
+    { id: 'glalitite', name: 'Glalitite', price: 30000, description: 'Mega Evolve Glalie.', category: 'mega_stone', sprite: getSprite('glalitite') },
+    { id: 'gracidea', name: 'Gracidea', price: 80000, description: 'Allows Shaymin to change into Sky Forme.', category: 'key_item', sprite: getSprite('gracidea') },
+    { id: 'griseous_orb', name: 'Griseous Orb', price: 120000, description: 'Allows Giratina to enter Origin Forme.', category: 'orb', sprite: getSprite('griseous-orb') },
+    { id: 'gyaradosite', name: 'Gyaradosite', price: 45000, description: 'Mega Evolve Gyarados.', category: 'mega_stone', sprite: getSprite('gyaradosite') },
+    { id: 'heracronite', name: 'Heracronite', price: 35000, description: 'Mega Evolve Heracross.', category: 'mega_stone', sprite: getSprite('heracronite') },
+    { id: 'houndoominite', name: 'Houndoominite', price: 30000, description: 'Mega Evolve Houndoom.', category: 'mega_stone', sprite: getSprite('houndoominite') },
+    { id: 'kangaskhanite', name: 'Kangaskhanite', price: 35000, description: 'Mega Evolve Kangaskhan.', category: 'mega_stone', sprite: getSprite('kangaskhanite') },
+    { id: 'latiasite', name: 'Latiasite', price: 50000, description: 'Mega Evolve Latias.', category: 'mega_stone', sprite: getSprite('latiasite') },
+    { id: 'latiosite', name: 'Latiosite', price: 50000, description: 'Mega Evolve Latios.', category: 'mega_stone', sprite: getSprite('latiosite') },
+    { id: 'lopunnite', name: 'Lopunnite', price: 30000, description: 'Mega Evolve Lopunny.', category: 'mega_stone', sprite: getSprite('lopunnite') },
+    { id: 'lucarionite', name: 'Lucarionite', price: 40000, description: 'Mega Evolve Lucario.', category: 'mega_stone', sprite: getSprite('lucarionite') },
+    { id: 'lustrous_globe', name: 'Lustrous Globe', price: 120000, description: 'Allows Palkia to enter Origin Forme.', category: 'orb', sprite: getSprite('lustrous-orb') },
+    { id: 'manectite', name: 'Manectite', price: 30000, description: 'Mega Evolve Manectric.', category: 'mega_stone', sprite: getSprite('manectite') },
+    { id: 'mawilite', name: 'Mawilite', price: 30000, description: 'Mega Evolve Mawile.', category: 'mega_stone', sprite: getSprite('mawilite') },
+    { id: 'medichamite', name: 'Medichamite', price: 30000, description: 'Mega Evolve Medicham.', category: 'mega_stone', sprite: getSprite('medichamite') },
+    { id: 'metagrossite', name: 'Metagrossite', price: 55000, description: 'Mega Evolve Metagross.', category: 'mega_stone', sprite: getSprite('metagrossite') },
+    { id: 'pidgeotite', name: 'Pidgeotite', price: 30000, description: 'Mega Evolve Pidgeot.', category: 'mega_stone', sprite: getSprite('pidgeotite') },
+    { id: 'pinsirite', name: 'Pinsirite', price: 35000, description: 'Mega Evolve Pinsir.', category: 'mega_stone', sprite: getSprite('pinsirite') },
+    { id: 'prison_bottle', name: 'Prison Bottle', price: 150000, description: 'Transforms Hoopa into its Unbound form.', category: 'key_item', sprite: getSprite('prison-bottle') },
+    { id: 'red_orb', name: 'Red Orb', price: 100000, description: 'Triggers Primal Reversion for Groudon.', category: 'orb', sprite: getSprite('red-orb') },
+    { id: 'reveal_glass', name: 'Reveal Glass', price: 80000, description: 'Changes the form of the Forces of Nature.', category: 'key_item', sprite: getSprite('reveal-glass') },
+    { id: 'rusted_shield', name: 'Rusted Shield', price: 150000, description: 'Allows Zamazenta to enter Crowned Shield form.', category: 'held_item', sprite: 'https://archives.bulbagarden.net/media/upload/8/80/Bag_Rusted_Shield_SV_Sprite.png' },
+    { id: 'rusted_sword', name: 'Rusted Sword', price: 150000, description: 'Allows Zacian to enter Crowned Sword form.', category: 'held_item', sprite: 'https://archives.bulbagarden.net/media/upload/a/ab/Bag_Rusted_Sword_SV_Sprite.png' },
+    { id: 'sablenite', name: 'Sablenite', price: 30000, description: 'Mega Evolve Sableye.', category: 'mega_stone', sprite: getSprite('sablenite') },
+    { id: 'salamencite', name: 'Salamencite', price: 55000, description: 'Mega Evolve Salamence.', category: 'mega_stone', sprite: getSprite('salamencite') },
+    { id: 'sceptilite', name: 'Sceptilite', price: 50000, description: 'Mega Evolve Sceptile.', category: 'mega_stone', sprite: getSprite('sceptilite') },
+    { id: 'scizorite', name: 'Scizorite', price: 40000, description: 'Mega Evolve Scizor.', category: 'mega_stone', sprite: getSprite('scizorite') },
+    { id: 'sharpedonite', name: 'Sharpedonite', price: 30000, description: 'Mega Evolve Sharpedo.', category: 'mega_stone', sprite: getSprite('sharpedonite') },
+    { id: 'slowbronite', name: 'Slowbronite', price: 30000, description: 'Mega Evolve Slowbro.', category: 'mega_stone', sprite: getSprite('slowbronite') },
+    { id: 'steelixite', name: 'Steelixite', price: 35000, description: 'Mega Evolve Steelix.', category: 'mega_stone', sprite: getSprite('steelixite') },
+    { id: 'swampertite', name: 'Swampertite', price: 50000, description: 'Mega Evolve Swampert.', category: 'mega_stone', sprite: getSprite('swampertite') },
+    { id: 'tyranitarite', name: 'Tyranitarite', price: 55000, description: 'Mega Evolve Tyranitar.', category: 'mega_stone', sprite: getSprite('tyranitarite') },
+    { id: 'ultranecrozium_z', name: 'Ultranecrozium Z', price: 250000, description: 'Allows fused Necrozma to become Ultra Necrozma.', category: 'key_item', sprite: 'https://img.pokemondb.net/sprites/items/ultranecrozium-z.png' },
+    { id: 'venusaurite', name: 'Venusaurite', price: 50000, description: 'Mega Evolve Venusaur.', category: 'mega_stone', sprite: getSprite('venusaurite') },
+];
+
+// Map Pokemon ID to Required Item for Transformation/Evolution
+// This overrides default costs in PokemonPanel logic if present
+export const ITEM_REQUIREMENTS: Record<number, string> = {
+    // Primals
+    382: 'blue_orb', // Kyogre
+    383: 'red_orb', // Groudon
+
+    // Hero -> Crowned
+    888: 'rusted_sword', // Zacian
+    889: 'rusted_shield', // Zamazenta
+
+    // Origin Forms (Hisui/Sinnoh items)
+    483: 'adamant_crystal', // Dialga
+    484: 'lustrous_globe', // Palkia
+    487: 'griseous_orb', // Giratina
+
+    // Forces of Nature
+    641: 'reveal_glass',
+    642: 'reveal_glass',
+    645: 'reveal_glass',
+    905: 'reveal_glass', // Enamorus
+
+    // Other Forms
+    720: 'prison_bottle', // Hoopa
+    492: 'gracidea', // Shaymin
+
+    // Ultra Necrozma (Requires fused forms)
+    10155: 'ultranecrozium_z', // Dusk Mane
+    10156: 'ultranecrozium_z', // Dawn Wings
+
+    // Megas (Source ID)
+    6: 'charizardite_x', // Defaulting X for simplicity in UI if only 1 button, usually needs choice
+    3: 'venusaurite',
+    9: 'blastoisinite',
+    94: 'gengarite',
+    150: 'mewtwonite_y', 
+    448: 'lucarionite',
+    384: 'rayquazite',
+    
+    // Adding more mega mappings for new stones
+    460: 'abomasite',
+    359: 'absolite',
+    142: 'aerodactylite',
+    306: 'aggronite',
+    65: 'alakazite',
+    334: 'altarianite',
+    181: 'ampharosite',
+    531: 'audinite',
+    354: 'banettite',
+    15: 'beedrillite',
+    257: 'blazikenite',
+    323: 'cameruptite',
+    719: 'diancite',
+    475: 'galladite',
+    282: 'gardevoirite',
+    445: 'garchompite',
+    362: 'glalitite',
+    130: 'gyaradosite',
+    214: 'heracronite',
+    229: 'houndoominite',
+    115: 'kangaskhanite',
+    380: 'latiasite',
+    381: 'latiosite',
+    428: 'lopunnite',
+    310: 'manectite',
+    303: 'mawilite',
+    308: 'medichamite',
+    376: 'metagrossite',
+    18: 'pidgeotite',
+    127: 'pinsirite',
+    302: 'sablenite',
+    373: 'salamencite',
+    254: 'sceptilite',
+    212: 'scizorite',
+    319: 'sharpedonite',
+    80: 'slowbronite',
+    208: 'steelixite',
+    260: 'swampertite',
+    248: 'tyranitarite'
+};
+
 export const MEGA_EVOLUTION_MAP: Record<number, boolean> = {
     3: true,
     6: true,
@@ -142,22 +309,46 @@ export const MEGA_EVOLUTION_MAP: Record<number, boolean> = {
     15: true,
     18: true,
     65: true,
+    80: true,
     94: true,
+    115: true,
+    127: true,
     130: true,
     142: true,
     150: true,
+    181: true,
+    208: true,
     212: true,
+    214: true,
+    229: true,
     248: true,
     254: true,
     257: true,
     260: true,
     282: true,
+    302: true,
+    303: true,
+    306: true,
+    308: true,
+    310: true,
+    319: true,
+    323: true,
+    334: true,
+    354: true,
+    359: true,
+    362: true,
     373: true,
     376: true,
+    380: true,
+    381: true,
     384: true,
+    428: true,
     445: true,
     448: true,
+    460: true,
     475: true,
+    531: true,
+    719: true
 };
 
 // --- FUSION & FORMS ---
@@ -217,8 +408,126 @@ export const FORM_CHAINS: Record<number, number> = {
     382: 10077,
 
     // Groudon: Base (383) -> Primal (10078) -> [End]
-    383: 10078
+    383: 10078,
+    
+    // Forces of Nature (Therian Forms)
+    641: 10019, // Tornadus
+    642: 10020, // Thundurus
+    645: 10021, // Landorus
+    905: 10045, // Enamorus
+
+    // Necrozma Fused -> Ultra
+    10155: 10157, // Dusk Mane -> Ultra
+    10156: 10157  // Dawn Wings -> Ultra
 };
+
+// --- GYM LEADERS ---
+export const GYM_LEADERS: GymLeader[] = [
+    {
+        id: 'gym_1_brock',
+        name: 'Brock',
+        city: 'Pewter City',
+        type: 'rock',
+        badge: 'Boulder Badge',
+        badgeSprite: 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/badges/1.png',
+        difficultyRating: 500,
+        rewardCredits: 5000,
+        description: "The Rock-Solid Pokémon Trainer. His defense is tough to crack!",
+        leaderSprite: 'https://img.pokemondb.net/sprites/trainers/firered-leafgreen/brock.png',
+        acePokemonId: 95 // Onix
+    },
+    {
+        id: 'gym_2_misty',
+        name: 'Misty',
+        city: 'Cerulean City',
+        type: 'water',
+        badge: 'Cascade Badge',
+        badgeSprite: 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/badges/2.png',
+        difficultyRating: 1200,
+        rewardCredits: 10000,
+        description: "The Tomboyish Mermaid. Watch out for her powerful water attacks!",
+        leaderSprite: 'https://img.pokemondb.net/sprites/trainers/firered-leafgreen/misty.png',
+        acePokemonId: 121 // Starmie
+    },
+    {
+        id: 'gym_3_surge',
+        name: 'Lt. Surge',
+        city: 'Vermilion City',
+        type: 'electric',
+        badge: 'Thunder Badge',
+        badgeSprite: 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/badges/3.png',
+        difficultyRating: 2500,
+        rewardCredits: 15000,
+        description: "The Lightning American. His speed is shocking!",
+        leaderSprite: 'https://img.pokemondb.net/sprites/trainers/firered-leafgreen/lt-surge.png',
+        acePokemonId: 26 // Raichu
+    },
+    {
+        id: 'gym_4_erika',
+        name: 'Erika',
+        city: 'Celadon City',
+        type: 'grass',
+        badge: 'Rainbow Badge',
+        badgeSprite: 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/badges/4.png',
+        difficultyRating: 4000,
+        rewardCredits: 20000,
+        description: "The Nature-Loving Princess. Don't let her flowers fool you.",
+        leaderSprite: 'https://img.pokemondb.net/sprites/trainers/firered-leafgreen/erika.png',
+        acePokemonId: 45 // Vileplume
+    },
+    {
+        id: 'gym_5_koga',
+        name: 'Koga',
+        city: 'Fuchsia City',
+        type: 'poison',
+        badge: 'Soul Badge',
+        badgeSprite: 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/badges/5.png',
+        difficultyRating: 6000,
+        rewardCredits: 30000,
+        description: "The Poisonous Ninja Master. His toxins will drain you.",
+        leaderSprite: 'https://img.pokemondb.net/sprites/trainers/firered-leafgreen/koga.png',
+        acePokemonId: 110 // Weezing
+    },
+    {
+        id: 'gym_6_sabrina',
+        name: 'Sabrina',
+        city: 'Saffron City',
+        type: 'psychic',
+        badge: 'Marsh Badge',
+        badgeSprite: 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/badges/6.png',
+        difficultyRating: 8500,
+        rewardCredits: 40000,
+        description: "The Master of Psychics. She can see your defeat coming.",
+        leaderSprite: 'https://img.pokemondb.net/sprites/trainers/firered-leafgreen/sabrina.png',
+        acePokemonId: 65 // Alakazam
+    },
+    {
+        id: 'gym_7_blaine',
+        name: 'Blaine',
+        city: 'Cinnabar Island',
+        type: 'fire',
+        badge: 'Volcano Badge',
+        badgeSprite: 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/badges/7.png',
+        difficultyRating: 12000,
+        rewardCredits: 50000,
+        description: "The Hot-Headed Quiz Master. You'll get burned!",
+        leaderSprite: 'https://img.pokemondb.net/sprites/trainers/firered-leafgreen/blaine.png',
+        acePokemonId: 59 // Arcanine
+    },
+    {
+        id: 'gym_8_giovanni',
+        name: 'Giovanni',
+        city: 'Viridian City',
+        type: 'ground',
+        badge: 'Earth Badge',
+        badgeSprite: 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/badges/8.png',
+        difficultyRating: 18000,
+        rewardCredits: 100000,
+        description: "The Team Rocket Boss. The ultimate challenge.",
+        leaderSprite: 'https://img.pokemondb.net/sprites/trainers/firered-leafgreen/giovanni.png',
+        acePokemonId: 112 // Rhydon (Classic Giovanni ace representation)
+    }
+];
 
 // --- ACHIEVEMENTS SYSTEM ---
 
@@ -290,6 +599,36 @@ export const ACHIEVEMENTS: Achievement[] = [
         category: 'collection' as const,
         condition: (p: any) => p.stats.pokemonBought >= count,
         progress: (p: any) => ({ current: p.stats.pokemonBought, max: count })
+    })),
+
+    // NEW: Shiny Collection
+    ...[1, 5, 10].map(count => ({
+        id: `shiny_${count}`,
+        title: `Shiny Hunter ${count}`,
+        description: `Own ${count} Shiny Pokémon.`,
+        reward: count * 25000,
+        category: 'shiny' as const,
+        condition: (p: any) => p.inventory.filter((i: any) => i.isShiny).length >= count,
+        progress: (p: any) => ({ current: p.inventory.filter((i: any) => i.isShiny).length, max: count })
+    })),
+
+    // NEW: Item Collection
+    ...[1, 5, 10].map(count => ({
+        id: `item_${count}`,
+        title: `Item Collector ${count}`,
+        description: `Own ${count} Unique Items (in Bag or Held).`,
+        reward: count * 10000,
+        category: 'item' as const,
+        condition: (p: any) => {
+            const bagCount = p.items.length;
+            const heldCount = p.inventory.filter((pok: any) => !!pok.heldItem).length;
+            return (bagCount + heldCount) >= count;
+        },
+        progress: (p: any) => {
+            const bagCount = p.items.length;
+            const heldCount = p.inventory.filter((pok: any) => !!pok.heldItem).length;
+            return { current: bagCount + heldCount, max: count };
+        }
     })),
 
     // Roulette Wins
