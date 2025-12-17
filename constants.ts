@@ -255,10 +255,8 @@ export const FORM_CHAINS: Record<number, number> = {
     483: 10245, 484: 10246, 487: 10007,
     888: 10188, 889: 10189, 890: 10190,
     386: 10001, 10001: 10002, 10002: 10003,
-    492: 10006,
     648: 10018,
     382: 10077, 383: 10078,
-    641: 10019, 642: 10020, 645: 10021, 905: 10045,
     10155: 10157, 10156: 10157
 };
 
@@ -293,10 +291,24 @@ export const FORM_OPTIONS: Record<number, FormOption[]> = {
         { id: 10038, name: 'Mega Gengar', type: 'mega', requiredKeyItem: 'mega_bracelet', requiredHeldItem: 'gengarite' },
         { id: 10202, name: 'Gigantamax Gengar', type: 'gmax', requiredKeyItem: 'dynamax_band' }
     ],
-    // Hoopa: Unbound (Prison Bottle is KEY ITEM)
+    // Hoopa: Unbound (Prison Bottle is KEY ITEM) - Fixed ID (10069)
     720: [
-        { id: 10024, name: 'Hoopa Unbound', type: 'form', requiredKeyItem: 'prison_bottle' }
+        { id: 10069, name: 'Hoopa Unbound', type: 'form', requiredKeyItem: 'prison_bottle' }
     ],
+    // Keldeo: Resolute (Form change)
+    647: [
+        { id: 10024, name: 'Keldeo Resolute', type: 'form' }
+    ],
+    // Shaymin: Sky (Gracidea is KEY ITEM)
+    492: [
+        { id: 10006, name: 'Shaymin Sky', type: 'form', requiredKeyItem: 'gracidea' }
+    ],
+    // Forces of Nature (Reveal Glass is KEY ITEM)
+    641: [{ id: 10019, name: 'Tornadus Therian', type: 'form', requiredKeyItem: 'reveal_glass' }], // Tornadus
+    642: [{ id: 10020, name: 'Thundurus Therian', type: 'form', requiredKeyItem: 'reveal_glass' }], // Thundurus
+    645: [{ id: 10021, name: 'Landorus Therian', type: 'form', requiredKeyItem: 'reveal_glass' }], // Landorus
+    905: [{ id: 10045, name: 'Enamorus Therian', type: 'form', requiredKeyItem: 'reveal_glass' }], // Enamorus
+
     // Mewtwo: X, Y
     150: [
         { id: 10043, name: 'Mega Mewtwo X', type: 'mega', requiredKeyItem: 'mega_bracelet', requiredHeldItem: 'mewtwonite_x' }, // Assuming X stone exists in potential updates
