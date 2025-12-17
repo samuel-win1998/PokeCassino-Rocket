@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { PlayerState, GameTab, MarketPokemon, MarketFilter, Achievement, GameItem } from './types';
-import { POKEMON_DATA, ACHIEVEMENTS, CLASS_FIXED_MULTIPLIERS, ITEM_REQUIREMENTS, MEGA_EVOLUTION_MAP, FUSION_ITEM_REQUIREMENTS, GAME_ITEMS } from './constants';
+import { POKEMON_DATA, ACHIEVEMENTS, CLASS_FIXED_MULTIPLIERS, ITEM_REQUIREMENTS, MEGA_EVOLUTION_MAP, FUSION_ITEM_REQUIREMENTS, GAME_ITEMS, FORM_OPTIONS, FORM_CHAINS } from './constants';
 import { generateStarterClass, generateMarketBatch, fetchPokemonData, calculateMultiplier, getNextEvolution, calculateRefreshCost } from './utils/marketGenerator';
 import { StarterSelection } from './components/StarterSelection';
 import { SquadPanel } from './components/PokemonPanel';
@@ -336,24 +336,35 @@ const App: React.FC = () => {
       const pokemon = player.inventory.find(p => p.uniqueId === uniqueId);
       if (!pokemon) return;
 
-      // KEY ITEM CHECK: Ultra Burst (Necrozma) or Dynamax (Eternatus)
-      // Ultra Necrozma ID: 10157
-      if (nextPokedexId === 10157) {
-          if (!player.items.includes('z_ring')) {
+      // New Validation Logic: Check FORM_OPTIONS
+      const options = FORM_OPTIONS[pokemon.pokedexId];
+      if (options) {
+          const targetOption = options.find(o => o.id === nextPokedexId);
+          if (targetOption) {
+              if (targetOption.requiredKeyItem && !player.items.includes(targetOption.requiredKeyItem)) {
+                  setToast({ message: `Need Key Item: ${GAME_ITEMS.find(i => i.id === targetOption.requiredKeyItem)?.name || targetOption.requiredKeyItem}`, visible: true });
+                  setTimeout(() => setToast(t => ({ ...t, visible: false })), 3000);
+                  return;
+              }
+              if (targetOption.requiredHeldItem && pokemon.heldItem !== targetOption.requiredHeldItem) {
+                  setToast({ message: `Pokemon must hold: ${GAME_ITEMS.find(i => i.id === targetOption.requiredHeldItem)?.name || targetOption.requiredHeldItem}`, visible: true });
+                  setTimeout(() => setToast(t => ({ ...t, visible: false })), 3000);
+                  return;
+              }
+          }
+      } else {
+          // Legacy Linear Chain Validation
+          if (nextPokedexId === 10157 && !player.items.includes('z_ring')) {
               setToast({ message: "You need a Z-Power Ring to use Ultra Burst!", visible: true });
               setTimeout(() => setToast(t => ({ ...t, visible: false })), 3000);
               return;
           }
+          if (nextPokedexId === 10190 && !player.items.includes('dynamax_band')) {
+               setToast({ message: "You need a Dynamax Band to Dynamax!", visible: true });
+               setTimeout(() => setToast(t => ({ ...t, visible: false })), 3000);
+               return;
+          }
       }
-      // Eternamax Eternatus ID: 10190
-      if (nextPokedexId === 10190) {
-           if (!player.items.includes('dynamax_band')) {
-              setToast({ message: "You need a Dynamax Band to Dynamax!", visible: true });
-              setTimeout(() => setToast(t => ({ ...t, visible: false })), 3000);
-              return;
-           }
-      }
-
 
       const data = await fetchPokemonData(nextPokedexId);
       if (!data) return;
@@ -592,6 +603,7 @@ const App: React.FC = () => {
     { id: 'slots', label: 'Slots', icon: '🎰' },
     { id: 'market', label: 'Market', icon: '🛒' },
     { id: 'collection', label: 'Storage', icon: '🎒' },
+    { id: 'key_items', label: 'Key Items', icon: '🗝️' },
     { id: 'achievements', label: 'Awards', icon: '🏆' },
   ];
 
@@ -637,17 +649,6 @@ const App: React.FC = () => {
                 {player.credits.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                 </span>
              </div>
-
-             {/* Key Items Box */}
-             {ownedKeyItems.length > 0 && (
-                 <div className="glass-panel p-2 rounded-xl flex flex-wrap justify-end gap-1.5 max-w-[250px] bg-black/40 border-white/5">
-                     {ownedKeyItems.map(item => (
-                         <div key={item.id} className="w-8 h-8 bg-slate-800 rounded-lg p-1 border border-slate-600 relative group" title={item.name}>
-                             <img src={item.sprite} alt={item.name} className="w-full h-full object-contain" />
-                         </div>
-                     ))}
-                 </div>
-             )}
           </div>
         </div>
       </nav>
@@ -666,7 +667,7 @@ const App: React.FC = () => {
             />
         )}
 
-        <div className="grid grid-cols-3 sm:grid-cols-3 lg:grid-cols-6 gap-3 mb-8 max-w-5xl mx-auto px-2">
+        <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-7 gap-3 mb-8 max-w-5xl mx-auto px-2">
           {NAV_ITEMS.map((item) => (
             <button
               key={item.id}
@@ -704,11 +705,7 @@ const App: React.FC = () => {
                 setFilter={setMarketFilter}
                 showFilters={showMarketFilters}
                 setShowFilters={setShowMarketFilters}
-                ownedItemIds={player.items} // Show as owned ONLY if in bag (so they can buy duplicates if needed, or check logic in Marketplace)
-                // Actually Marketplace check logic usually hides owned unique items, but here items are strings.
-                // Pass items in bag + items held to be safe if items should be unique globally? 
-                // Market logic uses this array to HIDE items. If we want unique items globally:
-                // ownedItemIds={[...player.items, ...player.inventory.map(p => p.heldItem).filter(Boolean) as string[]]}
+                ownedItemIds={player.items} 
                 onBuyItem={handleBuyItem}
              />
         ) : activeTab === 'collection' ? (
@@ -721,6 +718,31 @@ const App: React.FC = () => {
                 onSellItem={handleSellItem}
                 onGiveItem={handleGiveItem}
              />
+        ) : activeTab === 'key_items' ? (
+             <div className="glass-panel p-6 rounded-2xl">
+                 <h2 className="text-2xl font-bold mb-6 flex items-center gap-2">
+                     <span className="text-3xl">🗝️</span> Key Items & Tools
+                 </h2>
+                 {ownedKeyItems.length === 0 ? (
+                     <div className="text-center py-12 text-slate-500 italic">
+                         You haven't obtained any Key Items yet. Visit the Market!
+                     </div>
+                 ) : (
+                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                         {ownedKeyItems.map(item => (
+                             <div key={item.id} className="bg-slate-800/50 p-4 rounded-xl border border-white/5 flex gap-4 items-center">
+                                 <div className="w-16 h-16 bg-black/40 rounded-lg p-2 border border-slate-700 shrink-0">
+                                     <img src={item.sprite} alt={item.name} className="w-full h-full object-contain" />
+                                 </div>
+                                 <div>
+                                     <h3 className="font-bold text-amber-400">{item.name}</h3>
+                                     <p className="text-xs text-slate-400">{item.description}</p>
+                                 </div>
+                             </div>
+                         ))}
+                     </div>
+                 )}
+             </div>
         ) : activeTab === 'achievements' ? (
              <Achievements player={player} />
         ) : (

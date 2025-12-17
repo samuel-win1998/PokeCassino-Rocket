@@ -43,8 +43,6 @@ export const TYPE_COLORS: Record<PokemonType, string> = {
     fairy: 'bg-pink-300',
 };
 
-// Simple Type Advantage Chart (Attacker -> Defender: Multiplier)
-// Only including Super Effective (2x) for simplicity in auto-battler
 export const TYPE_CHART: Record<PokemonType, PokemonType[]> = {
     normal: [],
     fire: ['grass', 'ice', 'bug', 'steel'],
@@ -66,64 +64,12 @@ export const TYPE_CHART: Record<PokemonType, PokemonType[]> = {
     fairy: ['fighting', 'dragon', 'dark']
 };
 
-// Hardcoded lists for groups that are hard to filter via simple API flags
-export const STARTER_IDS = [
-    1, 4, 7, // Gen 1
-    152, 155, 158, // Gen 2
-    252, 255, 258, // Gen 3
-    387, 390, 393, // Gen 4
-    495, 498, 501, // Gen 5
-    650, 653, 656, // Gen 6
-    722, 725, 728, // Gen 7
-    810, 813, 816, // Gen 8
-    906, 909, 912  // Gen 9
-];
-
-export const PSEUDO_LEGENDARY_IDS = [
-    147, 148, 149, // Dragonite line
-    246, 247, 248, // Tyranitar line
-    371, 372, 373, // Salamence line
-    374, 375, 376, // Metagross line (Fixed/Confirmed)
-    443, 444, 445, // Garchomp line
-    633, 634, 635, // Hydreigon line
-    704, 705, 706, // Goodra line
-    782, 783, 784, // Kommo-o line
-    885, 886, 887, // Dragapult line
-    996, 997, 998  // Baxcalibur line
-];
-
-export const ULTRA_BEAST_IDS = [
-    793, 794, 795, 796, 797, 798, 799, 800, 803, 804, 805, 806
-];
-
-export const PARADOX_IDS = [
-    984, 985, 986, 987, 988, 989, 990, 991, 992, 993, 
-    994, 995, 1005, 1006, 1007, 1008, 1009, 1010
-];
-
-export const LEGENDARY_IDS = [
-    144, 145, 146, 150, // Gen 1
-    243, 244, 245, 249, 250, // Gen 2
-    377, 378, 379, 380, 381, 382, 383, 384, // Gen 3
-    480, 481, 482, 483, 484, 485, 486, 487, 488, // Gen 4
-    638, 639, 640, 641, 642, 643, 644, 645, 646, // Gen 5
-    716, 717, 718, // Gen 6
-    772, 773, 785, 786, 787, 788, 789, 790, 791, 792, 800, // Gen 7
-    888, 889, 890, 891, 892, 894, 895, 896, 897, 898, // Gen 8
-    1001, 1002, 1003, 1004, 1007, 1008, 1014, 1015, 1016, 1017, 1024 // Gen 9 (Approx)
-];
-
-export const MYTHICAL_IDS = [
-    151, // Mew
-    251, // Celebi
-    385, 386, // Jirachi, Deoxys
-    489, 490, 491, 492, 493, // Phione, Manaphy, Darkrai, Shaymin, Arceus
-    494, 647, 648, 649, // Victini, Keldeo, Meloetta, Genesect
-    719, 720, 721, // Diancie, Hoopa, Volcanion
-    801, 802, 807, 808, 809, // Magearna, Marshadow, Zeraora, Meltan, Melmetal
-    893, // Zarude
-    1025 // Pecharunt
-];
+export const STARTER_IDS = [1, 4, 7, 152, 155, 158, 252, 255, 258, 387, 390, 393, 495, 498, 501, 650, 653, 656, 722, 725, 728, 810, 813, 816, 906, 909, 912];
+export const PSEUDO_LEGENDARY_IDS = [147, 148, 149, 246, 247, 248, 371, 372, 373, 374, 375, 376, 443, 444, 445, 633, 634, 635, 704, 705, 706, 782, 783, 784, 885, 886, 887, 996, 997, 998];
+export const ULTRA_BEAST_IDS = [793, 794, 795, 796, 797, 798, 799, 800, 803, 804, 805, 806];
+export const PARADOX_IDS = [984, 985, 986, 987, 988, 989, 990, 991, 992, 993, 994, 995, 1005, 1006, 1007, 1008, 1009, 1010];
+export const LEGENDARY_IDS = [144, 145, 146, 150, 243, 244, 245, 249, 250, 377, 378, 379, 380, 381, 382, 383, 384, 480, 481, 482, 483, 484, 485, 486, 487, 488, 638, 639, 640, 641, 642, 643, 644, 645, 646, 716, 717, 718, 772, 773, 785, 786, 787, 788, 789, 790, 791, 792, 800, 888, 889, 890, 891, 892, 894, 895, 896, 897, 898, 1001, 1002, 1003, 1004, 1007, 1008, 1014, 1015, 1016, 1017, 1024];
+export const MYTHICAL_IDS = [151, 251, 385, 386, 489, 490, 491, 492, 493, 494, 647, 648, 649, 719, 720, 721, 801, 802, 807, 808, 809, 893, 1025];
 
 export const CLASS_COLORS: Record<PokemonClass, string> = {
   F: 'text-slate-400 border-slate-600',
@@ -160,8 +106,6 @@ export const POKEMON_DATA: Record<string, { base: { apiName: string, name: strin
 
 const getSprite = (name: string) => `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/${name}.png`;
 
-// --- GAME ITEMS MARKET (SORTED ALPHABETICALLY) ---
-// Using custom images for broken official sprites (Rusted items, Z-crystals)
 export const GAME_ITEMS: GameItem[] = [
     { id: 'abomasite', name: 'Abomasite', price: 30000, description: 'Mega Evolve Abomasnow.', category: 'mega_stone', sprite: getSprite('abomasite') },
     { id: 'absolite', name: 'Absolite', price: 30000, description: 'Mega Evolve Absol.', category: 'mega_stone', sprite: getSprite('absolite') },
@@ -228,59 +172,33 @@ export const GAME_ITEMS: GameItem[] = [
     { id: 'z_ring', name: 'Z-Power Ring', price: 100000, description: 'Key Item. Enables Z-Moves and Ultra Burst (Necrozma).', category: 'key_item', sprite: 'https://img.pokemondb.net/sprites/items/z-power-ring.png' },
 ];
 
-// FUSION REQUIREMENTS MAP: Result Pokedex ID -> Required Item ID
 export const FUSION_ITEM_REQUIREMENTS: Record<number, string> = {
-    // Kyurem
     10023: 'dna_splicers', // Black Kyurem
     10022: 'dna_splicers', // White Kyurem
-    // Necrozma
     10155: 'n_solarizer', // Dusk Mane (Solgaleo)
     10156: 'n_lunarizer', // Dawn Wings (Lunala)
-    // Calyrex
     10193: 'reins_of_unity', // Ice Rider
     10194: 'reins_of_unity', // Shadow Rider
 };
 
-// Map Pokemon ID to Required Item for Transformation/Evolution
-// This overrides default costs in PokemonPanel logic if present
+// Item Requirements for holding (Specifically for simple UI checks)
 export const ITEM_REQUIREMENTS: Record<number, string> = {
-    // Primals
-    382: 'blue_orb', // Kyogre
-    383: 'red_orb', // Groudon
-
-    // Hero -> Crowned
-    888: 'rusted_sword', // Zacian
-    889: 'rusted_shield', // Zamazenta
-
-    // Origin Forms (Hisui/Sinnoh items)
-    483: 'adamant_crystal', // Dialga
-    484: 'lustrous_globe', // Palkia
-    487: 'griseous_orb', // Giratina
-
-    // Forces of Nature
-    641: 'reveal_glass',
-    642: 'reveal_glass',
-    645: 'reveal_glass',
-    905: 'reveal_glass', // Enamorus
-
-    // Other Forms
-    720: 'prison_bottle', // Hoopa
-    492: 'gracidea', // Shaymin
-
-    // Ultra Necrozma (Requires fused forms)
-    10155: 'ultranecrozium_z', // Dusk Mane
-    10156: 'ultranecrozium_z', // Dawn Wings
-
-    // Megas (Source ID)
-    6: 'charizardite_x', // Defaulting X for simplicity in UI if only 1 button, usually needs choice
+    382: 'blue_orb', 
+    383: 'red_orb', 
+    888: 'rusted_sword', 
+    889: 'rusted_shield', 
+    483: 'adamant_crystal', 
+    484: 'lustrous_globe', 
+    487: 'griseous_orb', 
+    10155: 'ultranecrozium_z', 
+    10156: 'ultranecrozium_z',
+    6: 'charizardite_x', // Note: Only used for single path logic, complex logic uses FORM_OPTIONS
     3: 'venusaurite',
     9: 'blastoisinite',
     94: 'gengarite',
     150: 'mewtwonite_y', 
     448: 'lucarionite',
     384: 'rayquazite',
-    
-    // Adding more mega mappings for new stones
     460: 'abomasite',
     359: 'absolite',
     142: 'aerodactylite',
@@ -323,125 +241,101 @@ export const ITEM_REQUIREMENTS: Record<number, string> = {
 };
 
 export const MEGA_EVOLUTION_MAP: Record<number, boolean> = {
-    3: true,
-    6: true,
-    9: true,
-    15: true,
-    18: true,
-    65: true,
-    80: true,
-    94: true,
-    115: true,
-    127: true,
-    130: true,
-    142: true,
-    150: true,
-    181: true,
-    208: true,
-    212: true,
-    214: true,
-    229: true,
-    248: true,
-    254: true,
-    257: true,
-    260: true,
-    282: true,
-    302: true,
-    303: true,
-    306: true,
-    308: true,
-    310: true,
-    319: true,
-    323: true,
-    334: true,
-    354: true,
-    359: true,
-    362: true,
-    373: true,
-    376: true,
-    380: true,
-    381: true,
-    384: true,
-    428: true,
-    445: true,
-    448: true,
-    460: true,
-    475: true,
-    531: true,
-    719: true
+    3: true, 6: true, 9: true, 15: true, 18: true, 65: true, 80: true, 94: true, 115: true, 127: true, 130: true, 142: true, 150: true, 181: true, 208: true, 212: true, 214: true, 229: true, 248: true, 254: true, 257: true, 260: true, 282: true, 302: true, 303: true, 306: true, 308: true, 310: true, 319: true, 323: true, 334: true, 354: true, 359: true, 362: true, 373: true, 376: true, 380: true, 381: true, 384: true, 428: true, 445: true, 448: true, 460: true, 475: true, 531: true, 719: true
 };
 
-// --- FUSION & FORMS ---
-// Base ID -> [{ partnerId, resultId, name }]
-// name is the RESULT name, not the partner name
 export const FUSION_PAIRS: Record<number, { partnerId: number, resultId: number, name: string }[]> = {
-    800: [ // Necrozma
-        { partnerId: 791, resultId: 10155, name: "Dusk Mane" }, // Solgaleo
-        { partnerId: 792, resultId: 10156, name: "Dawn Wings" } // Lunala
+    800: [{ partnerId: 791, resultId: 10155, name: "Dusk Mane" }, { partnerId: 792, resultId: 10156, name: "Dawn Wings" }],
+    646: [{ partnerId: 644, resultId: 10023, name: "Black Kyurem" }, { partnerId: 643, resultId: 10022, name: "White Kyurem" }],
+    898: [{ partnerId: 896, resultId: 10193, name: "Ice Rider" }, { partnerId: 897, resultId: 10194, name: "Shadow Rider" }]
+};
+
+export const FORM_CHAINS: Record<number, number> = {
+    10118: 718, 718: 10120,
+    483: 10245, 484: 10246, 487: 10007,
+    888: 10188, 889: 10189, 890: 10190,
+    386: 10001, 10001: 10002, 10002: 10003,
+    492: 10006,
+    648: 10018,
+    382: 10077, 383: 10078,
+    641: 10019, 642: 10020, 645: 10021, 905: 10045,
+    10155: 10157, 10156: 10157
+};
+
+export interface FormOption {
+    id: number;
+    name: string;
+    type: 'mega' | 'gmax' | 'form';
+    requiredKeyItem?: string;
+    requiredHeldItem?: string;
+}
+
+// COMPLEX TRANSFORMATIONS (Megas with multiple forms, Mega vs GMax, Hoopa, etc)
+export const FORM_OPTIONS: Record<number, FormOption[]> = {
+    // Charizard: Mega X, Mega Y, G-Max
+    6: [
+        { id: 10034, name: 'Mega Charizard X', type: 'mega', requiredKeyItem: 'mega_bracelet', requiredHeldItem: 'charizardite_x' },
+        { id: 10035, name: 'Mega Charizard Y', type: 'mega', requiredKeyItem: 'mega_bracelet', requiredHeldItem: 'charizardite_y' },
+        { id: 10196, name: 'Gigantamax Charizard', type: 'gmax', requiredKeyItem: 'dynamax_band' }
     ],
-    646: [ // Kyurem
-        { partnerId: 644, resultId: 10023, name: "Black Kyurem" }, // Zekrom
-        { partnerId: 643, resultId: 10022, name: "White Kyurem" }  // Reshiram
+    // Venusaur: Mega, G-Max
+    3: [
+        { id: 10033, name: 'Mega Venusaur', type: 'mega', requiredKeyItem: 'mega_bracelet', requiredHeldItem: 'venusaurite' },
+        { id: 10195, name: 'Gigantamax Venusaur', type: 'gmax', requiredKeyItem: 'dynamax_band' }
     ],
-    898: [ // Calyrex
-        { partnerId: 896, resultId: 10193, name: "Ice Rider" },    // Glastrier
-        { partnerId: 897, resultId: 10194, name: "Shadow Rider" }  // Spectrier
+    // Blastoise: Mega, G-Max
+    9: [
+        { id: 10036, name: 'Mega Blastoise', type: 'mega', requiredKeyItem: 'mega_bracelet', requiredHeldItem: 'blastoisinite' },
+        { id: 10197, name: 'Gigantamax Blastoise', type: 'gmax', requiredKeyItem: 'dynamax_band' }
+    ],
+    // Gengar: Mega, G-Max
+    94: [
+        { id: 10038, name: 'Mega Gengar', type: 'mega', requiredKeyItem: 'mega_bracelet', requiredHeldItem: 'gengarite' },
+        { id: 10202, name: 'Gigantamax Gengar', type: 'gmax', requiredKeyItem: 'dynamax_band' }
+    ],
+    // Hoopa: Unbound (Prison Bottle is KEY ITEM)
+    720: [
+        { id: 10024, name: 'Hoopa Unbound', type: 'form', requiredKeyItem: 'prison_bottle' }
+    ],
+    // Mewtwo: X, Y
+    150: [
+        { id: 10043, name: 'Mega Mewtwo X', type: 'mega', requiredKeyItem: 'mega_bracelet', requiredHeldItem: 'mewtwonite_x' }, // Assuming X stone exists in potential updates
+        { id: 10044, name: 'Mega Mewtwo Y', type: 'mega', requiredKeyItem: 'mega_bracelet', requiredHeldItem: 'mewtwonite_y' }
+    ],
+    // G-Max Only list
+    12: [{ id: 10198, name: 'Gigantamax Butterfree', type: 'gmax', requiredKeyItem: 'dynamax_band' }],
+    25: [{ id: 10199, name: 'Gigantamax Pikachu', type: 'gmax', requiredKeyItem: 'dynamax_band' }],
+    52: [{ id: 10200, name: 'Gigantamax Meowth', type: 'gmax', requiredKeyItem: 'dynamax_band' }],
+    68: [{ id: 10201, name: 'Gigantamax Machamp', type: 'gmax', requiredKeyItem: 'dynamax_band' }],
+    99: [{ id: 10203, name: 'Gigantamax Kingler', type: 'gmax', requiredKeyItem: 'dynamax_band' }],
+    131: [{ id: 10204, name: 'Gigantamax Lapras', type: 'gmax', requiredKeyItem: 'dynamax_band' }],
+    133: [{ id: 10205, name: 'Gigantamax Eevee', type: 'gmax', requiredKeyItem: 'dynamax_band' }],
+    143: [{ id: 10206, name: 'Gigantamax Snorlax', type: 'gmax', requiredKeyItem: 'dynamax_band' }],
+    569: [{ id: 10207, name: 'Gigantamax Garbodor', type: 'gmax', requiredKeyItem: 'dynamax_band' }],
+    809: [{ id: 10208, name: 'Gigantamax Melmetal', type: 'gmax', requiredKeyItem: 'dynamax_band' }],
+    812: [{ id: 10209, name: 'Gigantamax Rillaboom', type: 'gmax', requiredKeyItem: 'dynamax_band' }],
+    815: [{ id: 10210, name: 'Gigantamax Cinderace', type: 'gmax', requiredKeyItem: 'dynamax_band' }],
+    818: [{ id: 10211, name: 'Gigantamax Inteleon', type: 'gmax', requiredKeyItem: 'dynamax_band' }],
+    823: [{ id: 10212, name: 'Gigantamax Corviknight', type: 'gmax', requiredKeyItem: 'dynamax_band' }],
+    826: [{ id: 10213, name: 'Gigantamax Orbeetle', type: 'gmax', requiredKeyItem: 'dynamax_band' }],
+    834: [{ id: 10214, name: 'Gigantamax Drednaw', type: 'gmax', requiredKeyItem: 'dynamax_band' }],
+    839: [{ id: 10215, name: 'Gigantamax Coalossal', type: 'gmax', requiredKeyItem: 'dynamax_band' }],
+    841: [{ id: 10216, name: 'Gigantamax Flapple', type: 'gmax', requiredKeyItem: 'dynamax_band' }],
+    842: [{ id: 10217, name: 'Gigantamax Appletun', type: 'gmax', requiredKeyItem: 'dynamax_band' }],
+    844: [{ id: 10218, name: 'Gigantamax Sandaconda', type: 'gmax', requiredKeyItem: 'dynamax_band' }],
+    849: [{ id: 10219, name: 'Gigantamax Toxtricity', type: 'gmax', requiredKeyItem: 'dynamax_band' }],
+    851: [{ id: 10220, name: 'Gigantamax Centiskorch', type: 'gmax', requiredKeyItem: 'dynamax_band' }],
+    858: [{ id: 10221, name: 'Gigantamax Hatterene', type: 'gmax', requiredKeyItem: 'dynamax_band' }],
+    861: [{ id: 10222, name: 'Gigantamax Grimmsnarl', type: 'gmax', requiredKeyItem: 'dynamax_band' }],
+    869: [{ id: 10223, name: 'Gigantamax Alcremie', type: 'gmax', requiredKeyItem: 'dynamax_band' }],
+    879: [{ id: 10224, name: 'Gigantamax Copperajah', type: 'gmax', requiredKeyItem: 'dynamax_band' }],
+    884: [{ id: 10225, name: 'Gigantamax Duraludon', type: 'gmax', requiredKeyItem: 'dynamax_band' }],
+    892: [
+        { id: 10226, name: 'Gigantamax Urshifu (Single Strike)', type: 'gmax', requiredKeyItem: 'dynamax_band' },
+        { id: 10227, name: 'Gigantamax Urshifu (Rapid Strike)', type: 'gmax', requiredKeyItem: 'dynamax_band' }
     ]
 };
 
-// Current ID -> Next ID (LINEAR, NO LOOPS)
-export const FORM_CHAINS: Record<number, number> = {
-    // Zygarde: 10% (10118) -> 50% (718) -> Complete (10120) -> [End]
-    10118: 718, 718: 10120,
-    
-    // Dialga: Base (483) -> Origin (10245) -> [End]
-    483: 10245,
-    
-    // Palkia: Base (484) -> Origin (10246) -> [End]
-    484: 10246,
-
-    // Giratina: Altered (487) -> Origin (10007) -> [End]
-    487: 10007,
-
-    // Zacian: Hero (888) -> Crowned (10188) -> [End]
-    888: 10188,
-
-    // Zamazenta: Hero (889) -> Crowned (10189) -> [End]
-    889: 10189,
-
-    // Eternatus: Base (890) -> Eternamax (10190) -> [End]
-    890: 10190,
-
-    // Deoxys: Normal (386) -> Attack (10001) -> Defense (10002) -> Speed (10003) -> [End]
-    386: 10001, 10001: 10002, 10002: 10003,
-
-    // Shaymin: Land (492) -> Sky (10006) -> [End]
-    492: 10006,
-
-    // Hoopa: Confined (720) -> Unbound (10024) -> [End]
-    720: 10024,
-
-    // Meloetta: Aria (648) -> Pirouette (10018) -> [End]
-    648: 10018,
-
-    // Kyogre: Base (382) -> Primal (10077) -> [End]
-    382: 10077,
-
-    // Groudon: Base (383) -> Primal (10078) -> [End]
-    383: 10078,
-    
-    // Forces of Nature (Therian Forms)
-    641: 10019, // Tornadus
-    642: 10020, // Thundurus
-    645: 10021, // Landorus
-    905: 10045, // Enamorus
-
-    // Necrozma Fused -> Ultra
-    10155: 10157, // Dusk Mane -> Ultra
-    10156: 10157  // Dawn Wings -> Ultra
-};
-
-// --- GYM LEADERS ---
 export const GYM_LEADERS: GymLeader[] = [
     {
         id: 'gym_1_brock',

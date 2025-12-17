@@ -1,3 +1,4 @@
+
 export type BonusType = 'slot' | 'roulette' | 'rocket';
 export type PokemonClass = 'F' | 'E' | 'D' | 'C' | 'B' | 'A';
 
@@ -85,4 +86,4 @@ export interface MarketFilter {
   targetGroup: PokemonGroup;
 }
 
-export type GameTab = 'roulette' | 'rocket' | 'slots' | 'market' | 'collection' | 'achievements';
+export type GameTab = 'roulette' | 'rocket' | 'slots' | 'market' | 'collection' | 'achievements' | 'key_items';
