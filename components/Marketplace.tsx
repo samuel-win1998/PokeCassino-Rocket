@@ -28,6 +28,7 @@ export const Marketplace: React.FC<MarketplaceProps> = ({
 }) => {
   const [activeTab, setActiveTab] = useState<'pokemon' | 'items'>('pokemon');
   const [timeLeft, setTimeLeft] = useState(0);
+  const [itemSearch, setItemSearch] = useState('');
 
   // Dynamic Cost Calculation
   const refreshCost = calculateRefreshCost(filter);
@@ -63,8 +64,10 @@ export const Marketplace: React.FC<MarketplaceProps> = ({
     });
   };
 
-  // Filter out owned items
-  const availableItems = GAME_ITEMS.filter(item => !ownedItemIds.includes(item.id));
+  // Filter out owned items and apply search
+  const availableItems = GAME_ITEMS
+      .filter(item => !ownedItemIds.includes(item.id))
+      .filter(item => item.name.toLowerCase().includes(itemSearch.toLowerCase()));
 
   return (
     <div className="flex flex-col gap-6">
@@ -228,6 +231,18 @@ export const Marketplace: React.FC<MarketplaceProps> = ({
              )}
             </>
          )}
+
+         {activeTab === 'items' && (
+             <div className="mb-4">
+                 <input 
+                    type="text" 
+                    placeholder="Search items..." 
+                    value={itemSearch}
+                    onChange={(e) => setItemSearch(e.target.value)}
+                    className="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-2 text-white placeholder-slate-500 focus:outline-none focus:border-violet-500"
+                 />
+             </div>
+         )}
        </div>
 
        {/* ITEMS GRID */}
@@ -235,22 +250,22 @@ export const Marketplace: React.FC<MarketplaceProps> = ({
            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                {availableItems.length === 0 ? (
                    <div className="col-span-full text-center py-12 text-slate-500 italic">
-                       Market Sold Out! You own all available items.
+                       {itemSearch ? 'No items matching your search.' : 'Market Sold Out! You own all available items.'}
                    </div>
                ) : (
                    availableItems.map(item => (
                        <div key={item.id} className="glass-panel p-4 rounded-xl flex items-center gap-4 relative hover:bg-slate-800/50 transition-colors group">
-                           <div className="w-16 h-16 bg-black/40 rounded-lg flex items-center justify-center p-2 border border-slate-700">
+                           <div className="w-16 h-16 bg-black/40 rounded-lg flex items-center justify-center p-2 border border-slate-700 shrink-0">
                                <img src={item.sprite} alt={item.name} className="w-full h-full object-contain filter drop-shadow-lg" />
                            </div>
-                           <div className="flex-1">
-                               <h3 className="font-bold text-amber-400">{item.name}</h3>
-                               <p className="text-xs text-slate-400 leading-tight mb-2 min-h-[2.5em]">{item.description}</p>
+                           <div className="flex-1 min-w-0">
+                               <h3 className="font-bold text-amber-400 truncate">{item.name}</h3>
+                               <p className="text-xs text-slate-400 leading-tight mb-2 min-h-[2.5em] line-clamp-2">{item.description}</p>
                                <Button 
                                    variant="primary" 
                                    disabled={credits < item.price}
                                    onClick={() => onBuyItem && onBuyItem(item)}
-                                   className="text-xs py-1 px-3 h-8"
+                                   className="text-xs py-1 px-3 h-8 w-full sm:w-auto"
                                >
                                    Buy ${item.price.toLocaleString()}
                                </Button>

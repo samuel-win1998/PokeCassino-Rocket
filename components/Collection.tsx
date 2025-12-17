@@ -9,12 +9,14 @@ interface CollectionProps {
   playerItems?: string[]; // Bag items
   onToggleEquip: (id: string) => void;
   onSell: (id: string, price: number) => void;
+  onSellItem?: (id: string, price: number) => void;
   onGiveItem?: (itemId: string, pokemonId: string) => void;
 }
 
-export const Collection: React.FC<CollectionProps> = ({ inventory, equippedIds, playerItems = [], onToggleEquip, onSell, onGiveItem }) => {
+export const Collection: React.FC<CollectionProps> = ({ inventory, equippedIds, playerItems = [], onToggleEquip, onSell, onSellItem, onGiveItem }) => {
   const [activeTab, setActiveTab] = useState<'pokemon' | 'items'>('pokemon');
   const [confirmSellId, setConfirmSellId] = useState<string | null>(null);
+  const [confirmSellItem, setConfirmSellItem] = useState<string | null>(null);
   
   // State for equipping items logic
   const [selectedItemToEquip, setSelectedItemToEquip] = useState<string | null>(null);
@@ -45,8 +47,7 @@ export const Collection: React.FC<CollectionProps> = ({ inventory, equippedIds, 
 
   // Resolve item details for Bag
   const bagItems = playerItems.map(id => GAME_ITEMS.find(i => i.id === id)).filter(Boolean) as GameItem[];
-  // Deduplicate for display if needed, but array allows multiples. Let's group by quantity visually or just list.
-  // Grouping:
+  // Group items by count
   const groupedItems: { item: GameItem, count: number }[] = [];
   bagItems.forEach(item => {
       const existing = groupedItems.find(g => g.item.id === item.id);
@@ -103,27 +104,51 @@ export const Collection: React.FC<CollectionProps> = ({ inventory, equippedIds, 
               {groupedItems.length === 0 ? (
                   <div className="col-span-full text-center py-12 text-slate-500 italic">No items in bag.</div>
               ) : (
-                  groupedItems.map(({ item, count }) => (
-                      <div key={item.id} className="glass-panel p-4 rounded-xl flex items-center gap-3 relative">
-                          <div className="w-16 h-16 bg-black/40 rounded-lg flex items-center justify-center p-2 border border-slate-700">
-                             <img src={item.sprite} alt={item.name} className="w-full h-full object-contain" />
-                          </div>
-                          <div className="flex-1 min-w-0">
-                              <h3 className="font-bold text-amber-400 truncate">{item.name}</h3>
-                              <p className="text-xs text-slate-400 mb-2">Quantity: {count}</p>
-                              <Button 
-                                variant="primary" 
-                                className="w-full text-xs py-1"
-                                onClick={() => {
-                                    setSelectedItemToEquip(item.id);
-                                    setActiveTab('pokemon'); // Switch tab to allow selection
-                                }}
-                              >
-                                  Give to Pokémon
-                              </Button>
-                          </div>
-                      </div>
-                  ))
+                  groupedItems.map(({ item, count }) => {
+                      const sellPrice = Math.floor(item.price * 0.75);
+                      const isConfirming = confirmSellItem === item.id;
+
+                      return (
+                        <div key={item.id} className="glass-panel p-4 rounded-xl flex flex-col gap-2 relative">
+                            <div className="flex items-center gap-3">
+                                <div className="w-16 h-16 bg-black/40 rounded-lg flex items-center justify-center p-2 border border-slate-700">
+                                   <img src={item.sprite} alt={item.name} className="w-full h-full object-contain" />
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                    <h3 className="font-bold text-amber-400 truncate">{item.name}</h3>
+                                    <p className="text-xs text-slate-400 mb-1">Quantity: {count}</p>
+                                </div>
+                            </div>
+                            <div className="flex gap-2 mt-2">
+                                <Button 
+                                    variant="primary" 
+                                    className="flex-1 text-xs py-1"
+                                    onClick={() => {
+                                        setSelectedItemToEquip(item.id);
+                                        setActiveTab('pokemon'); // Switch tab to allow selection
+                                    }}
+                                >
+                                    Give
+                                </Button>
+                                <Button 
+                                    variant={isConfirming ? "danger" : "secondary"}
+                                    className={`flex-1 text-xs py-1 ${isConfirming ? 'animate-pulse font-bold' : ''}`}
+                                    onClick={() => {
+                                        if (isConfirming) {
+                                            if (onSellItem) onSellItem(item.id, sellPrice);
+                                            setConfirmSellItem(null);
+                                        } else {
+                                            setConfirmSellItem(item.id);
+                                            setTimeout(() => setConfirmSellItem(null), 3000);
+                                        }
+                                    }}
+                                >
+                                    {isConfirming ? 'CONFIRM' : `Sell $${sellPrice.toLocaleString()}`}
+                                </Button>
+                            </div>
+                        </div>
+                      );
+                  })
               )}
           </div>
       )}
@@ -134,7 +159,7 @@ export const Collection: React.FC<CollectionProps> = ({ inventory, equippedIds, 
             const isEquipped = equippedIds.includes(item.uniqueId);
             const isConfirming = confirmSellId === item.uniqueId;
             
-            // Calculate price for old saves (where price was 0 for starters)
+            // Calculate price for old saves
             let baseValue = item.price;
             if (!baseValue && item.isStarter) {
                 const rawPrice = item.totalStats * 10;

@@ -1,20 +1,21 @@
 import React, { useEffect, useState } from 'react';
 import { MarketPokemon } from '../types';
 import { Button } from './ui/Button';
-import { CLASS_COLORS, MEGA_EVOLUTION_MAP, FUSION_PAIRS, FORM_CHAINS, ITEM_REQUIREMENTS, GAME_ITEMS, TYPE_COLORS } from '../constants';
+import { CLASS_COLORS, MEGA_EVOLUTION_MAP, FUSION_PAIRS, FORM_CHAINS, ITEM_REQUIREMENTS, GAME_ITEMS, TYPE_COLORS, FUSION_ITEM_REQUIREMENTS } from '../constants';
 import { getNextEvolution } from '../utils/marketGenerator';
 
 interface SquadPanelProps {
   squad: MarketPokemon[];
   allInventory: MarketPokemon[];
   credits: number;
+  playerItems?: string[]; // Bag items for checking Key Items
   onEvolve: (uniqueId: string, cost: number) => void;
   onFuse: (baseId: string, partnerId: string, resultPokedexId: number, cost: number) => void;
   onFormChange: (uniqueId: string, nextPokedexId: number, cost: number) => void;
   onTakeItem?: (pokemonId: string) => void;
 }
 
-export const SquadPanel: React.FC<SquadPanelProps> = ({ squad, allInventory, credits, onEvolve, onFuse, onFormChange, onTakeItem }) => {
+export const SquadPanel: React.FC<SquadPanelProps> = ({ squad, allInventory, credits, playerItems = [], onEvolve, onFuse, onFormChange, onTakeItem }) => {
   const [canEvolveMap, setCanEvolveMap] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
@@ -50,41 +51,68 @@ export const SquadPanel: React.FC<SquadPanelProps> = ({ squad, allInventory, cre
           let isMega = false;
           let missingItem = '';
 
-          // Check if item required for regular/mega
-          const reqItem = ITEM_REQUIREMENTS[pokemon.pokedexId];
-
           // Check for Mega
           if (MEGA_EVOLUTION_MAP[pokemon.pokedexId]) {
               isMega = true;
               nextStageCost = 0; // Megas now rely on item ownership primarily, cost is negligible or zero if using stone
               evoLabel = 'MEGA EVOLVE';
+              
+              // Check if player has Mega Bracelet
+              if (!playerItems.includes('mega_bracelet')) {
+                  missingItem = "Mega Bracelet";
+              }
+          } else {
+             // Standard Evolution Check (Check held items like Upgrade, etc. if mapped in ITEM_REQUIREMENTS)
+             // ITEM_REQUIREMENTS[id] is required to EVOLVE/TRANSFORM into specific form usually
+             const reqItem = ITEM_REQUIREMENTS[pokemon.pokedexId];
+             if (reqItem && pokemon.heldItem !== reqItem) {
+                 missingItem = getItemName(reqItem);
+             }
           }
 
-          // 2. Check Fusions (Necrozma, Kyurem, Calyrex)
+          // 2. Check Fusions
           const fusionOptions = FUSION_PAIRS[pokemon.pokedexId];
           let availableFusion = null;
+          let fusionMissingKeyItem = '';
 
           if (fusionOptions) {
               for (const option of fusionOptions) {
                   const partner = allInventory.find(p => p.pokedexId === option.partnerId && p.uniqueId !== pokemon.uniqueId);
                   if (partner) {
+                      // Check for Specific Fusion Item (e.g. N-Solarizer vs DNA Splicers)
+                      const requiredItem = FUSION_ITEM_REQUIREMENTS[option.resultId] || 'dna_splicers';
+                      if (!playerItems.includes(requiredItem)) {
+                          fusionMissingKeyItem = getItemName(requiredItem);
+                      }
+
                       availableFusion = {
                           ...option,
                           partnerUniqueId: partner.uniqueId,
                           cost: 100000 // Fusion Cost
                       };
-                      break;
+                      // Stop at first valid partner for simplicity in UI, or expand to allow choice
+                      break; 
                   }
               }
+              // If we didn't find a partner but options exist, we might still want to show "Need Partner" or similar?
+              // Currently logic hides button if no partner.
           }
 
           // 3. Check Form Changes (Linear, One-Way)
           const nextFormId = FORM_CHAINS[pokemon.pokedexId];
           const formChangeCost = 0; // Form changes usually item based now
+          let formMissingKeyItem = '';
+          
+          if (nextFormId) {
+              const reqItem = ITEM_REQUIREMENTS[pokemon.pokedexId];
+              // Check holding item
+              if (reqItem && pokemon.heldItem !== reqItem) {
+                  missingItem = getItemName(reqItem);
+              }
 
-          // Determine missing items. Logic: The POKEMON must hold the item.
-          if (reqItem && pokemon.heldItem !== reqItem) {
-              missingItem = getItemName(reqItem);
+              // Check Key Item for specific transformations (e.g. Ultra Necrozma needs Z-Ring, Eternatus needs Dynamax Band)
+              if (nextFormId === 10157 && !playerItems.includes('z_ring')) formMissingKeyItem = 'Z-Power Ring';
+              if (nextFormId === 10190 && !playerItems.includes('dynamax_band')) formMissingKeyItem = 'Dynamax Band';
           }
 
           // Determine if we show standard evolve button
@@ -142,20 +170,20 @@ export const SquadPanel: React.FC<SquadPanelProps> = ({ squad, allInventory, cre
                       {availableFusion ? (
                           <Button 
                              variant="primary"
-                             disabled={credits < availableFusion.cost}
+                             disabled={credits < availableFusion.cost || !!fusionMissingKeyItem}
                              onClick={() => onFuse(pokemon.uniqueId, availableFusion.partnerUniqueId, availableFusion.resultId, availableFusion.cost)}
                              className="py-1 px-3 text-xs w-full bg-indigo-600 hover:bg-indigo-500"
                           >
-                             Fuse into {availableFusion.name} ${availableFusion.cost.toLocaleString()}
+                             {fusionMissingKeyItem ? `Need ${fusionMissingKeyItem}` : `Fuse into ${availableFusion.name} $${availableFusion.cost.toLocaleString()}`}
                           </Button>
                       ) : nextFormId ? (
                           <Button 
                              variant="secondary"
-                             disabled={!!missingItem}
+                             disabled={!!missingItem || !!formMissingKeyItem}
                              onClick={() => onFormChange(pokemon.uniqueId, nextFormId, formChangeCost)}
                              className="py-1 px-3 text-xs w-full border border-green-500/50"
                           >
-                             {missingItem ? `Give ${missingItem}` : 'Change Form'}
+                             {formMissingKeyItem ? `Need ${formMissingKeyItem}` : missingItem ? `Need ${missingItem}` : 'Change Form'}
                           </Button>
                       ) : showEvolve ? (
                           <Button 
@@ -164,7 +192,7 @@ export const SquadPanel: React.FC<SquadPanelProps> = ({ squad, allInventory, cre
                             onClick={() => onEvolve(pokemon.uniqueId, nextStageCost)}
                             className="py-1 px-3 text-xs w-full"
                           >
-                             {missingItem ? `Give ${missingItem}` : `${evoLabel} ${nextStageCost > 0 ? `$${nextStageCost.toLocaleString()}` : ''}`}
+                             {missingItem ? `Need ${missingItem}` : `${evoLabel} ${nextStageCost > 0 ? `$${nextStageCost.toLocaleString()}` : ''}`}
                           </Button>
                       ) : (
                           <div className="text-center">

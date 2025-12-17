@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { PlayerState, GameTab, MarketPokemon, MarketFilter, Achievement, GameItem } from './types';
-import { POKEMON_DATA, ACHIEVEMENTS, CLASS_FIXED_MULTIPLIERS } from './constants';
+import { POKEMON_DATA, ACHIEVEMENTS, CLASS_FIXED_MULTIPLIERS, ITEM_REQUIREMENTS, MEGA_EVOLUTION_MAP, FUSION_ITEM_REQUIREMENTS, GAME_ITEMS } from './constants';
 import { generateStarterClass, generateMarketBatch, fetchPokemonData, calculateMultiplier, getNextEvolution, calculateRefreshCost } from './utils/marketGenerator';
 import { StarterSelection } from './components/StarterSelection';
 import { SquadPanel } from './components/PokemonPanel';
@@ -207,6 +207,15 @@ const App: React.FC = () => {
     const pokemon = player.inventory.find(p => p.uniqueId === uniqueId);
     if (!pokemon) return;
 
+    // KEY ITEM CHECK: Mega Evolution
+    if (MEGA_EVOLUTION_MAP[pokemon.pokedexId]) {
+        if (!player.items.includes('mega_bracelet')) {
+            setToast({ message: "You need a Mega Bracelet to Mega Evolve!", visible: true });
+            setTimeout(() => setToast(t => ({ ...t, visible: false })), 3000);
+            return;
+        }
+    }
+
     // Show loading state implicitly or via toast
     const nextPokedexId = await getNextEvolution(pokemon.pokedexId);
     
@@ -249,6 +258,24 @@ const App: React.FC = () => {
 
   const handleFusion = async (baseId: string, partnerId: string, resultPokedexId: number, cost: number) => {
       if (player.credits < cost) return;
+
+      // SPECIFIC ITEM CHECK BASED ON RESULT ID
+      const requiredItemId = FUSION_ITEM_REQUIREMENTS[resultPokedexId];
+      if (requiredItemId) {
+          if (!player.items.includes(requiredItemId)) {
+              const itemName = GAME_ITEMS.find(i => i.id === requiredItemId)?.name || requiredItemId;
+              setToast({ message: `You need ${itemName} to fuse this Pokémon!`, visible: true });
+              setTimeout(() => setToast(t => ({ ...t, visible: false })), 3000);
+              return;
+          }
+      } else {
+          // Fallback if not in map (shouldn't happen with current constants)
+          if (!player.items.includes('dna_splicers')) {
+              setToast({ message: "You need DNA Splicers to fuse Pokémon!", visible: true });
+              setTimeout(() => setToast(t => ({ ...t, visible: false })), 3000);
+              return;
+          }
+      }
 
       const basePokemon = player.inventory.find(p => p.uniqueId === baseId);
       const partnerPokemon = player.inventory.find(p => p.uniqueId === partnerId);
@@ -299,6 +326,25 @@ const App: React.FC = () => {
       const pokemon = player.inventory.find(p => p.uniqueId === uniqueId);
       if (!pokemon) return;
 
+      // KEY ITEM CHECK: Ultra Burst (Necrozma) or Dynamax (Eternatus)
+      // Ultra Necrozma ID: 10157
+      if (nextPokedexId === 10157) {
+          if (!player.items.includes('z_ring')) {
+              setToast({ message: "You need a Z-Power Ring to use Ultra Burst!", visible: true });
+              setTimeout(() => setToast(t => ({ ...t, visible: false })), 3000);
+              return;
+          }
+      }
+      // Eternamax Eternatus ID: 10190
+      if (nextPokedexId === 10190) {
+           if (!player.items.includes('dynamax_band')) {
+              setToast({ message: "You need a Dynamax Band to Dynamax!", visible: true });
+              setTimeout(() => setToast(t => ({ ...t, visible: false })), 3000);
+              return;
+           }
+      }
+
+
       const data = await fetchPokemonData(nextPokedexId);
       if (!data) return;
 
@@ -346,8 +392,6 @@ const App: React.FC = () => {
 
   const handleBuyItem = (item: GameItem) => {
       if (player.credits < item.price) return;
-      // Allow multiple of same item if needed, but for Mega Stones usually 1 is enough. 
-      // Current system items are strings in array, so multiples allowed.
       
       setPlayer(prev => ({
           ...prev,
@@ -381,6 +425,24 @@ const App: React.FC = () => {
       setTimeout(() => setToast(t => ({ ...t, visible: false })), 3000);
   };
 
+  const handleSellItem = (itemId: string, price: number) => {
+    setPlayer(prev => {
+        const itemIndex = prev.items.findIndex(i => i === itemId);
+        if (itemIndex === -1) return prev;
+
+        const newItems = [...prev.items];
+        newItems.splice(itemIndex, 1);
+
+        return {
+            ...prev,
+            credits: prev.credits + price,
+            items: newItems
+        };
+    });
+    setToast({ message: `Sold item for +${price.toLocaleString()} credits!`, visible: true });
+    setTimeout(() => setToast(t => ({ ...t, visible: false })), 2000);
+  };
+
   const handleToggleEquip = (id: string) => {
       setPlayer(prev => {
           const isEquipped = prev.equippedPokemonIds.includes(id);
@@ -394,6 +456,24 @@ const App: React.FC = () => {
   };
 
   const handleGiveItem = (itemId: string, pokemonId: string) => {
+      // COMPATIBILITY CHECK
+      // Check if this item has requirements
+      // We look if ITEM_REQUIREMENTS has this item ID as a value
+      const targetPokemon = player.inventory.find(p => p.uniqueId === pokemonId);
+      if (!targetPokemon) return;
+
+      // Find all Pokemon IDs that require this item for something
+      const compatiblePokedexIds = Object.keys(ITEM_REQUIREMENTS)
+          .filter(key => ITEM_REQUIREMENTS[parseInt(key)] === itemId)
+          .map(Number);
+      
+      // If the item IS a specific requirement item, and the target pokemon is NOT in the compatible list
+      if (compatiblePokedexIds.length > 0 && !compatiblePokedexIds.includes(targetPokemon.pokedexId)) {
+          setToast({ message: "This item cannot be held by this Pokémon!", visible: true });
+          setTimeout(() => setToast(t => ({ ...t, visible: false })), 3000);
+          return;
+      }
+
       setPlayer(prev => {
           const pokemonIndex = prev.inventory.findIndex(p => p.uniqueId === pokemonId);
           if (pokemonIndex === -1) return prev;
@@ -491,6 +571,11 @@ const App: React.FC = () => {
     }, 0);
   };
 
+  // Logic to get owned key items for display
+  const ownedKeyItems = GAME_ITEMS.filter(
+      item => item.category === 'key_item' && player.items.includes(item.id)
+  );
+
   const NAV_ITEMS: { id: GameTab; label: string; icon: string }[] = [
     { id: 'roulette', label: 'Roulette', icon: '🔴' },
     { id: 'rocket', label: 'Rocket', icon: '🚀' },
@@ -520,8 +605,8 @@ const App: React.FC = () => {
       <HelpModal isOpen={isHelpOpen} onClose={() => setIsHelpOpen(false)} />
 
       <nav className="glass-panel sticky top-0 z-50 mb-8 border-b border-white/10">
-        <div className="max-w-6xl mx-auto px-4 py-4 flex justify-between items-center">
-          <div className="flex items-center gap-4">
+        <div className="max-w-6xl mx-auto px-4 py-4 flex justify-between items-start">
+          <div className="flex items-center gap-4 mt-2">
               <button 
                 onClick={() => setIsHelpOpen(true)}
                 className="w-8 h-8 rounded-full bg-slate-800 text-slate-400 border border-slate-600 font-bold hover:bg-white hover:text-black transition-colors"
@@ -532,11 +617,27 @@ const App: React.FC = () => {
                 PokéCassino - Rocket
               </div>
           </div>
-          <div className="flex items-center gap-2 bg-slate-900/80 px-4 py-2 rounded-xl border border-slate-700 shadow-inner">
-            <span className="text-yellow-400 text-lg">🪙</span>
-            <span className="font-mono font-bold text-lg text-white">
-              {player.credits.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-            </span>
+          
+          {/* Right Side Column */}
+          <div className="flex flex-col items-end gap-2">
+             {/* Balance Pill */}
+             <div className="flex items-center gap-2 bg-slate-900/90 px-4 py-2 rounded-full border border-amber-500/30 shadow-[0_0_15px_rgba(245,158,11,0.2)]">
+                <span className="text-yellow-400 text-lg">🪙</span>
+                <span className="font-mono font-bold text-lg text-white">
+                {player.credits.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                </span>
+             </div>
+
+             {/* Key Items Box */}
+             {ownedKeyItems.length > 0 && (
+                 <div className="glass-panel p-2 rounded-xl flex flex-wrap justify-end gap-1.5 max-w-[250px] bg-black/40 border-white/5">
+                     {ownedKeyItems.map(item => (
+                         <div key={item.id} className="w-8 h-8 bg-slate-800 rounded-lg p-1 border border-slate-600 relative group" title={item.name}>
+                             <img src={item.sprite} alt={item.name} className="w-full h-full object-contain" />
+                         </div>
+                     ))}
+                 </div>
+             )}
           </div>
         </div>
       </nav>
@@ -547,6 +648,7 @@ const App: React.FC = () => {
               squad={equippedSquad}
               allInventory={player.inventory}
               credits={player.credits}
+              playerItems={player.items}
               onEvolve={handleEvolution}
               onFuse={handleFusion}
               onFormChange={handleFormChange}
@@ -606,6 +708,7 @@ const App: React.FC = () => {
                 playerItems={player.items}
                 onToggleEquip={handleToggleEquip}
                 onSell={handleSellPokemon}
+                onSellItem={handleSellItem}
                 onGiveItem={handleGiveItem}
              />
         ) : activeTab === 'achievements' ? (

@@ -181,6 +181,8 @@ export const GAME_ITEMS: GameItem[] = [
     { id: 'charizardite_x', name: 'Charizardite X', price: 50000, description: 'Mega Evolve Charizard X.', category: 'mega_stone', sprite: getSprite('charizardite-x') },
     { id: 'charizardite_y', name: 'Charizardite Y', price: 50000, description: 'Mega Evolve Charizard Y.', category: 'mega_stone', sprite: getSprite('charizardite-y') },
     { id: 'diancite', name: 'Diancite', price: 60000, description: 'Mega Evolve Diancie.', category: 'mega_stone', sprite: getSprite('diancite') },
+    { id: 'dna_splicers', name: 'DNA Splicers', price: 75000, description: 'Key Item. Fuses Kyurem with Reshiram or Zekrom.', category: 'key_item', sprite: getSprite('dna-splicers') },
+    { id: 'dynamax_band', name: 'Dynamax Band', price: 100000, description: 'Key Item. Enables Dynamax and Gigantamax transformations.', category: 'key_item', sprite: 'https://archives.bulbagarden.net/media/upload/1/1c/Sword_Shield_Dynamax_Band.png' },
     { id: 'galladite', name: 'Galladite', price: 40000, description: 'Mega Evolve Gallade.', category: 'mega_stone', sprite: getSprite('galladite') },
     { id: 'garchompite', name: 'Garchompite', price: 55000, description: 'Mega Evolve Garchomp.', category: 'mega_stone', sprite: getSprite('garchompite') },
     { id: 'gardevoirite', name: 'Gardevoirite', price: 40000, description: 'Mega Evolve Gardevoir.', category: 'mega_stone', sprite: getSprite('gardevoirite') },
@@ -200,11 +202,15 @@ export const GAME_ITEMS: GameItem[] = [
     { id: 'manectite', name: 'Manectite', price: 30000, description: 'Mega Evolve Manectric.', category: 'mega_stone', sprite: getSprite('manectite') },
     { id: 'mawilite', name: 'Mawilite', price: 30000, description: 'Mega Evolve Mawile.', category: 'mega_stone', sprite: getSprite('mawilite') },
     { id: 'medichamite', name: 'Medichamite', price: 30000, description: 'Mega Evolve Medicham.', category: 'mega_stone', sprite: getSprite('medichamite') },
+    { id: 'mega_bracelet', name: 'Mega Bracelet', price: 100000, description: 'Key Item. Enables Mega Evolution for Pokémon holding Mega Stones.', category: 'key_item', sprite: 'https://archives.bulbagarden.net/media/upload/2/2c/GO_GO_Mega_Bracelet_male.png' },
     { id: 'metagrossite', name: 'Metagrossite', price: 55000, description: 'Mega Evolve Metagross.', category: 'mega_stone', sprite: getSprite('metagrossite') },
+    { id: 'n_lunarizer', name: 'N-Lunarizer', price: 85000, description: 'Key Item. Fuses Necrozma with Lunala.', category: 'key_item', sprite: 'https://archives.bulbagarden.net/media/upload/7/76/Bag_N-Lunarizer_SV_Sprite.png' },
+    { id: 'n_solarizer', name: 'N-Solarizer', price: 85000, description: 'Key Item. Fuses Necrozma with Solgaleo.', category: 'key_item', sprite: 'https://archives.bulbagarden.net/media/upload/e/e4/Bag_N-Solarizer_SV_Sprite.png' },
     { id: 'pidgeotite', name: 'Pidgeotite', price: 30000, description: 'Mega Evolve Pidgeot.', category: 'mega_stone', sprite: getSprite('pidgeotite') },
     { id: 'pinsirite', name: 'Pinsirite', price: 35000, description: 'Mega Evolve Pinsir.', category: 'mega_stone', sprite: getSprite('pinsirite') },
     { id: 'prison_bottle', name: 'Prison Bottle', price: 150000, description: 'Transforms Hoopa into its Unbound form.', category: 'key_item', sprite: getSprite('prison-bottle') },
     { id: 'red_orb', name: 'Red Orb', price: 100000, description: 'Triggers Primal Reversion for Groudon.', category: 'orb', sprite: getSprite('red-orb') },
+    { id: 'reins_of_unity', name: 'Reins of Unity', price: 90000, description: 'Key Item. Fuses Calyrex with Glastrier or Spectrier.', category: 'key_item', sprite: 'https://archives.bulbagarden.net/media/upload/1/10/Bag_Reins_of_Unity_SV_Sprite.png' },
     { id: 'reveal_glass', name: 'Reveal Glass', price: 80000, description: 'Changes the form of the Forces of Nature.', category: 'key_item', sprite: getSprite('reveal-glass') },
     { id: 'rusted_shield', name: 'Rusted Shield', price: 150000, description: 'Allows Zamazenta to enter Crowned Shield form.', category: 'held_item', sprite: 'https://archives.bulbagarden.net/media/upload/8/80/Bag_Rusted_Shield_SV_Sprite.png' },
     { id: 'rusted_sword', name: 'Rusted Sword', price: 150000, description: 'Allows Zacian to enter Crowned Sword form.', category: 'held_item', sprite: 'https://archives.bulbagarden.net/media/upload/a/ab/Bag_Rusted_Sword_SV_Sprite.png' },
@@ -219,7 +225,21 @@ export const GAME_ITEMS: GameItem[] = [
     { id: 'tyranitarite', name: 'Tyranitarite', price: 55000, description: 'Mega Evolve Tyranitar.', category: 'mega_stone', sprite: getSprite('tyranitarite') },
     { id: 'ultranecrozium_z', name: 'Ultranecrozium Z', price: 250000, description: 'Allows fused Necrozma to become Ultra Necrozma.', category: 'key_item', sprite: 'https://img.pokemondb.net/sprites/items/ultranecrozium-z.png' },
     { id: 'venusaurite', name: 'Venusaurite', price: 50000, description: 'Mega Evolve Venusaur.', category: 'mega_stone', sprite: getSprite('venusaurite') },
+    { id: 'z_ring', name: 'Z-Power Ring', price: 100000, description: 'Key Item. Enables Z-Moves and Ultra Burst (Necrozma).', category: 'key_item', sprite: 'https://img.pokemondb.net/sprites/items/z-power-ring.png' },
 ];
+
+// FUSION REQUIREMENTS MAP: Result Pokedex ID -> Required Item ID
+export const FUSION_ITEM_REQUIREMENTS: Record<number, string> = {
+    // Kyurem
+    10023: 'dna_splicers', // Black Kyurem
+    10022: 'dna_splicers', // White Kyurem
+    // Necrozma
+    10155: 'n_solarizer', // Dusk Mane (Solgaleo)
+    10156: 'n_lunarizer', // Dawn Wings (Lunala)
+    // Calyrex
+    10193: 'reins_of_unity', // Ice Rider
+    10194: 'reins_of_unity', // Shadow Rider
+};
 
 // Map Pokemon ID to Required Item for Transformation/Evolution
 // This overrides default costs in PokemonPanel logic if present
